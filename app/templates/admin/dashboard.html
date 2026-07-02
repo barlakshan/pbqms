@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — People's Bank{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">System Administration</div>
+    <div class="pb-page-sub">People's Bank Sri Lanka &nbsp;·&nbsp; All Branches</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="/admin/branches" class="btn-pb-primary"><i class="ti ti-plus"></i> New branch</a>
+    <a href="/admin/users" class="btn-pb-outline"><i class="ti ti-user-plus"></i> New user</a>
+    <a href="/api/admin/analytics/export" class="btn-pb-outline"><i class="ti ti-download"></i> Export</a>
+  </div>
+</div>
+
+<!-- System stats -->
+<div class="pb-stat-grid">
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon red"><i class="ti ti-building"></i></div>
+    <div class="pb-stat-value">{{ stats.total_branches }}</div>
+    <div class="pb-stat-label">Active branches</div>
+    <div class="pb-stat-delta up">Island-wide</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon green"><i class="ti ti-ticket"></i></div>
+    <div class="pb-stat-value">{{ stats.tokens_today | number_format }}</div>
+    <div class="pb-stat-label">Tokens today (all)</div>
+    <div class="pb-stat-delta up">↑ {{ stats.today_delta }}% vs yesterday</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon yellow"><i class="ti ti-star"></i></div>
+    <div class="pb-stat-value">{{ stats.national_rating }}★</div>
+    <div class="pb-stat-label">National avg rating</div>
+    <div class="pb-stat-delta up">{{ stats.rating_count }} ratings</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon dark"><i class="ti ti-users"></i></div>
+    <div class="pb-stat-value">{{ stats.active_users }}</div>
+    <div class="pb-stat-label">Active users</div>
+    <div class="pb-stat-delta up">{{ stats.online_now }} online now</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Branches table -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-building" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Branch overview</div>
+      <a href="/admin/branches" style="font-size:12px;color:var(--pb-red);">View all →</a>
+    </div>
+    <div class="pb-card-body" style="padding:0;">
+      <table class="pb-table">
+        <thead><tr><th>Branch</th><th>City</th><th>Today</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for b in top_branches %}
+          <tr>
+            <td><strong>{{ b.name }}</strong></td>
+            <td style="color:#888;font-size:12px;">{{ b.city }}</td>
+            <td>{{ b.tokens_today }}</td>
+            <td style="color:var(--pb-yellow);font-size:12px;">{% if b.avg_rating %}★ {{ b.avg_rating }}{% else %}—{% endif %}</td>
+            <td><span class="pb-badge {{ 'green' if b.is_active else 'dark' }}">
+              {% if b.is_active %}<span class="pb-online-dot"></span> Active{% else %}Inactive{% endif %}
+            </span></td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <a href="{{ url_for('display.screen', branch_code=b.code) }}" target="_blank" class="btn-pb-outline" style="padding:4px 8px;font-size:11px;">Live screen</a>
+                <a href="{{ url_for('admin_view.branch_qr', branch_id=b.id) }}" class="btn-pb-outline" style="padding:4px 8px;font-size:11px;">QR code</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Users table -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-users" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Recent users</div>
+      <a href="/admin/users" style="font-size:12px;color:var(--pb-red);">Manage all →</a>
+    </div>
+    <div class="pb-card-body" style="padding:0;">
+      <table class="pb-table">
+        <thead><tr><th>Name</th><th>Role</th><th>Branch</th><th>Last login</th></tr></thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--pb-red-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--pb-red);">
+                  {{ u.full_name[:2].upper() }}
+                </div>
+                {{ u.full_name }}
+              </div>
+            </td>
+            <td><span class="pb-badge {{ 'red' if u.role.value == 'admin' else 'yellow' if u.role.value == 'branch_manager' else 'green' if u.role.value == 'lobby_officer' else 'dark' }}">
+              {{ u.role.value.replace('_',' ').title() }}
+            </span></td>
+            <td style="color:#888;font-size:12px;">{{ u.branch.name if u.branch else 'All' }}</td>
+            <td style="color:#888;font-size:12px;">{{ u.last_login.strftime('%d %b %H:%M') if u.last_login else 'Never' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Analytics charts -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px;">
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-chart-area" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Tokens issued — last 7 days (all branches)</div>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="weekly-chart" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-chart-pie" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Role distribution</div>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="role-chart" height="120"></canvas>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:10px;height:10px;border-radius:2px;background:#c80000;"></div>Admin ({{ role_counts.admin }})</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:10px;height:10px;border-radius:2px;background:#FFCB47;"></div>Branch Manager ({{ role_counts.branch_manager }})</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:10px;height:10px;border-radius:2px;background:#99c630;"></div>Lobby Officer ({{ role_counts.lobby_officer }})</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:10px;height:10px;border-radius:2px;background:#4c4e54;"></div>Loan Officer ({{ role_counts.loan_officer }})</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Audit log -->
+<div class="pb-card" style="margin-top:16px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-shield-check" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Recent audit log</div>
+    <a href="/admin/audit-logs" style="font-size:12px;color:var(--pb-red);">View full log →</a>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Branch</th><th>IP</th></tr></thead>
+      <tbody>
+        {% for log in audit_logs %}
+        <tr>
+          <td style="color:#888;font-size:12px;">{{ log.created_at.strftime('%H:%M:%S') }}</td>
+          <td>{{ log.user.full_name if log.user else 'System' }}</td>
+          <td><code style="font-size:11px;background:#f4f4f5;padding:2px 5px;border-radius:4px;">{{ log.action }}</code></td>
+          <td style="color:#888;font-size:12px;">{{ log.user.branch.code if log.user and log.user.branch else '—' }}</td>
+          <td style="color:#aaa;font-size:11px;">{{ log.ip_address or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Customer database -->
+<div class="pb-card" style="margin-top:16px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-address-book" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Customer database <span style="font-size:12px;font-weight:400;color:#aaa;margin-left:4px;">for promotions &amp; analytics</span></div>
+    <div style="display:flex;gap:8px;">
+      <a href="/api/admin/customers?format=csv" class="btn-pb-outline" style="font-size:11px;padding:5px 10px;"><i class="ti ti-download"></i> Export CSV</a>
+      <a href="/admin/customers" style="font-size:12px;color:var(--pb-red);">View all →</a>
+    </div>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Name</th><th>Mobile</th><th>Total visits</th><th>Last service</th><th>Branch</th><th>Registered</th></tr></thead>
+      <tbody>
+        {% for c in recent_customers %}
+        <tr>
+          <td><strong>{{ c.full_name }}</strong></td>
+          <td style="color:#888;font-size:12px;">{{ c.mobile[:6] }}••••</td>
+          <td>{{ c.visit_count }}</td>
+          <td style="color:#888;font-size:12px;">{{ c.last_service or '—' }}</td>
+          <td style="color:#888;font-size:12px;">{{ c.last_branch or '—' }}</td>
+          <td style="color:#aaa;font-size:11px;">{{ c.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const weeklyCtx = document.getElementById('weekly-chart').getContext('2d');
+  new Chart(weeklyCtx, {
+    type: 'line',
+    data: {
+      labels: {{ weekly_labels | tojson }},
+      datasets: [{
+        label: 'Tokens issued',
+        data: {{ weekly_data | tojson }},
+        borderColor: '#c80000',
+        backgroundColor: 'rgba(200,0,0,.08)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#c80000',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        y:{ beginAtZero:true, grid:{ color:'#f0f0f0' } },
+        x:{ grid:{ display:false } }
+      }
+    }
+  });
+
+  const roleCtx = document.getElementById('role-chart').getContext('2d');
+  new Chart(roleCtx, {
+    type:'doughnut',
+    data:{
+      labels:['Admin','Branch Manager','Lobby Officer','Loan Officer'],
+      datasets:[{ data: {{ role_counts.values() | list | tojson }},
+        backgroundColor:['#c80000','#FFCB47','#99c630','#4c4e54'],
+        borderWidth:0, hoverOffset:4
+      }]
+    },
+    options:{ responsive:true, cutout:'60%', plugins:{ legend:{ display:false } } }
+  });
+</script>
+{% endblock %}

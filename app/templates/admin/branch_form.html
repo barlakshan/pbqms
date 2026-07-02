@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if branch else 'New' }} Branch — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">{{ 'Edit Branch' if branch else 'New Branch' }}</div>
+    <div class="pb-page-sub">Manage branch details and status</div>
+  </div>
+  <a href="/admin/branches" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card" style="max-width:760px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title">Branch details</div>
+  </div>
+  <div class="pb-card-body">
+    <form method="POST">
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="code">Branch code *</label>
+        <input id="code" name="code" class="pb-form-control" type="text" value="{{ branch.code if branch else '' }}" {% if branch %}disabled{% endif %} required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="name">Branch name *</label>
+        <input id="name" name="name" class="pb-form-control" type="text" value="{{ branch.name if branch else '' }}" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="address">Address</label>
+        <textarea id="address" name="address" class="pb-form-control" rows="2">{{ branch.address if branch else '' }}</textarea>
+      </div>
+      <div class="pb-form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <label class="pb-form-label" for="city">City</label>
+          <input id="city" name="city" class="pb-form-control" type="text" value="{{ branch.city if branch else '' }}">
+        </div>
+        <div>
+          <label class="pb-form-label" for="phone">Phone</label>
+          <input id="phone" name="phone" class="pb-form-control" type="text" value="{{ branch.phone if branch else '' }}">
+        </div>
+      </div>
+      {% if branch %}
+      <div class="pb-form-group">
+        <label class="pb-form-label"><input type="checkbox" name="is_active" value="1" {% if branch.is_active %}checked{% endif %}> Active</label>
+      </div>
+      {% endif %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="submit" class="btn-pb-primary">{{ 'Update branch' if branch else 'Create branch' }}</button>
+        <a href="/admin/branches" class="btn-pb-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

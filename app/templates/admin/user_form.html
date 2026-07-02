@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if user else 'New' }} User — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">{{ 'Edit User' if user else 'New User' }}</div>
+    <div class="pb-page-sub">Manage system users, roles, and branch assignment</div>
+  </div>
+  <a href="/admin/users" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card" style="max-width:760px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title">User details</div>
+  </div>
+  <div class="pb-card-body">
+    <form method="POST">
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="employee_id">Employee ID *</label>
+        <input id="employee_id" name="employee_id" class="pb-form-control" type="text" value="{{ user.employee_id if user else '' }}" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="full_name">Full name *</label>
+        <input id="full_name" name="full_name" class="pb-form-control" type="text" value="{{ user.full_name if user else '' }}" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="email">Email *</label>
+        <input id="email" name="email" class="pb-form-control" type="email" value="{{ user.email if user else '' }}" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="password">Password {% if user %}(leave blank to keep current){% endif %}</label>
+        <input id="password" name="password" class="pb-form-control" type="password" {% if not user %}required{% endif %}>
+      </div>
+      <div class="pb-form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <label class="pb-form-label" for="role">Role *</label>
+          <select id="role" name="role" class="pb-form-control" required>
+            <option value="">Select role</option>
+            {% for role in roles %}
+            <option value="{{ role.name }}" {% if user and user.role == role %}selected{% endif %}>{{ role.value.replace('_',' ').title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="pb-form-label" for="branch_id">Branch</label>
+          <select id="branch_id" name="branch_id" class="pb-form-control">
+            <option value="">All branches</option>
+            {% for branch in branches %}
+            <option value="{{ branch.id }}" {% if user and user.branch_id == branch.id %}selected{% endif %}>{{ branch.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% if user %}
+      <div class="pb-form-group">
+        <label class="pb-form-label"><input type="checkbox" name="is_active" value="1" {% if user.is_active %}checked{% endif %}> Active</label>
+      </div>
+      {% endif %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="submit" class="btn-pb-primary">{{ 'Update user' if user else 'Create user' }}</button>
+        <a href="/admin/users" class="btn-pb-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Branches — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Branch Management</div>
+    <div class="pb-page-sub">Manage all bank branches</div>
+  </div>
+  <a href="/admin/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title">Active Branches</div>
+    <a href="/admin/branches/new" class="btn-pb-primary" style="margin-left:auto;">New branch</a>
+  </div>
+  <table class="pb-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+        <th>City</th>
+        <th>Phone</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for branch in branches %}
+      <tr>
+        <td><strong>{{ branch.code }}</strong></td>
+        <td>{{ branch.name }}</td>
+        <td>{{ branch.city }}</td>
+        <td>{{ branch.phone }}</td>
+        <td><span class="badge" style="background:{% if branch.is_active %}#10b981{% else %}#6b7280{% endif %}">{{ "Active" if branch.is_active else "Inactive" }}</span></td>
+        <td style="text-align:right;">
+          <a href="{{ url_for('display.screen', branch_code=branch.code) }}" target="_blank" class="btn-pb-outline" style="padding:6px 10px;">Live screen</a>
+          <a href="{{ url_for('admin_view.branch_qr', branch_id=branch.id) }}" class="btn-pb-outline" style="padding:6px 10px;margin-left:6px;">QR</a>
+          <a href="/admin/branches/{{ branch.id }}/edit" class="btn-pb-outline" style="padding:6px 10px;margin-left:6px;">Edit</a>
+          {% if branch.is_active %}
+          <form action="/admin/branches/{{ branch.id }}/deactivate" method="POST" style="display:inline;">
+            <button type="submit" class="btn-pb-danger" style="padding:6px 10px;margin-left:6px;">Deactivate</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

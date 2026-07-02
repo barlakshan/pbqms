@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Manager Dashboard — People's Bank{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Branch Dashboard</div>
+    <div class="pb-page-sub">{{ branch.name }} &nbsp;·&nbsp; {{ today.strftime('%A, %d %B %Y') }}</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="/manager/analytics" class="btn-pb-outline"><i class="ti ti-chart-area"></i> Analytics</a>
+    <a href="/manager/customers" class="btn-pb-outline"><i class="ti ti-address-book"></i> Customers</a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="pb-stat-grid">
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon red"><i class="ti ti-ticket"></i></div>
+    <div class="pb-stat-value">{{ stats.total }}</div>
+    <div class="pb-stat-label">Total today</div>
+    <div class="pb-stat-delta up">↑ {{ stats.delta_pct }}% vs avg</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon green"><i class="ti ti-circle-check"></i></div>
+    <div class="pb-stat-value">{{ stats.completed }}</div>
+    <div class="pb-stat-label">Completed</div>
+    <div class="pb-stat-delta up">{{ stats.completion_pct }}% rate</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon yellow"><i class="ti ti-clock"></i></div>
+    <div class="pb-stat-value">{{ stats.avg_wait }}m</div>
+    <div class="pb-stat-label">Avg. wait time</div>
+    <div class="pb-stat-delta {{ 'up' if stats.avg_wait <= 20 else 'down' }}">
+      Target: 20m {{ '✓' if stats.avg_wait <= 20 else '↑ over' }}
+    </div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon dark"><i class="ti ti-star"></i></div>
+    <div class="pb-stat-value">{{ stats.avg_rating }}★</div>
+    <div class="pb-stat-label">Satisfaction</div>
+    <div class="pb-stat-delta up">{{ stats.rating_count }} ratings</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Service breakdown -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-chart-bar" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Service breakdown</div>
+      <span style="font-size:11px;color:#aaa;">Today</span>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="svc-chart" height="140"></canvas>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+        {% for svc in service_stats %}
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:10px;height:10px;border-radius:2px;background:{{ svc.colour }};"></div>
+          <span style="font-size:11px;color:#666;">{{ svc.name }}: {{ svc.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Priority queue -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-star" style="font-size:15px;margin-right:6px;color:var(--pb-yellow)"></i>Priority queue</div>
+      <span class="pb-badge yellow">{{ priority_tokens | length }} today</span>
+    </div>
+    <div class="pb-card-body" style="padding:0;">
+      <table class="pb-table">
+        <thead><tr><th>Token</th><th>Customer</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for t in priority_tokens %}
+          <tr>
+            <td><strong>{{ t.token_number }}</strong></td>
+            <td>{{ t.customer.full_name }}</td>
+            <td>
+              <span class="pb-badge yellow">
+                <i class="ti ti-{{ 'user' if t.priority_reason.value == 'elderly' else 'heart' if t.priority_reason.value == 'pregnant' else 'wheelchair' }}"></i>
+                {{ t.priority_reason.value.title() }}
+              </span>
+            </td>
+            <td>
+              <span class="pb-badge {{ 'green' if t.status.value == 'completed' else 'red' if t.status.value == 'called' else 'yellow' }}">
+                {{ t.status.value.title() }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if not priority_tokens %}
+        <div class="text-center py-4" style="color:#aaa;font-size:13px;">No priority customers today</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Officer performance -->
+<div class="pb-card" style="margin-top:16px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-users" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Officer performance today</div>
+    <a href="{{ url_for('manager_view.officers') }}" class="btn-pb-outline" style="font-size:12px;padding:5px 12px;">View all</a>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Officer</th><th>Role</th><th>Served</th><th>Avg. time</th><th>Rating</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for o in officers %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--pb-red-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--pb-red);">
+                {{ o.user.full_name[:2].upper() }}
+              </div>
+              {{ o.user.full_name }}
+            </div>
+          </td>
+          <td style="color:#888;font-size:12px;">{{ o.user.role.value.replace('_',' ').title() }}</td>
+          <td><strong>{{ o.served }}</strong></td>
+          <td>{{ o.avg_time or '—' }}m</td>
+          <td style="color:var(--pb-yellow);">{% if o.avg_rating %}★ {{ o.avg_rating }}{% else %}—{% endif %}</td>
+          <td><span class="pb-badge {{ 'green' if o.is_active else 'dark' }}">
+            {% if o.is_active %}<span class="pb-online-dot"></span> Active{% else %}Offline{% endif %}
+          </span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Other queue -->
+<div class="pb-card" style="margin-top:16px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-circle-dots" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>"Other" queue — requires manager action</div>
+    <span class="pb-badge red">{{ other_tokens | length }} pending</span>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Token</th><th>Customer</th><th>Mobile</th><th>Reason</th><th>Issued</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for t in other_tokens %}
+        <tr>
+          <td><strong>{{ t.token_number }}</strong></td>
+          <td>{{ t.customer.full_name }}</td>
+          <td style="color:#888;font-size:12px;">{{ t.customer.mobile }}</td>
+          <td style="max-width:180px;font-size:12px;">{{ t.custom_reason or '—' }}</td>
+          <td style="color:#888;font-size:12px;">{{ t.issued_at.strftime('%H:%M') }}</td>
+          <td>
+            <button class="btn-pb-primary" style="font-size:11px;padding:4px 10px;"
+              onclick="callOther({{ t.id }})">
+              <i class="ti ti-phone-call"></i> Call
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if not other_tokens %}
+      <div class="text-center py-4" style="color:#aaa;font-size:13px;">No "Other" requests pending</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // Service breakdown donut chart
+  const ctx = document.getElementById('svc-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: {{ service_labels | tojson }},
+      datasets: [{ data: {{ service_counts | tojson }},
+        backgroundColor: ['#c80000','#99c630','#FFCB47','#4c4e54','#d1d2d5'],
+        borderWidth: 0, hoverOffset: 4
+      }]
+    },
+    options: { responsive:true, cutout:'65%', plugins:{ legend:{ display:false } } }
+  });
+
+  function callOther(tokenId) {
+    if (!confirm('Call this "Other" customer to your counter?')) return;
+    fetch(`/api/queue/call-next`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token_id: tokenId, counter_id: {{ manager_counter_id or 'null' }} })
+    })
+    .then(r => r.json())
+    .then(() => location.reload())
+    .catch(() => alert('Error calling customer'));
+  }
+</script>
+{% endblock %}

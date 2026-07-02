@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Officer Dashboard — People's Bank{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Officer Dashboard</div>
+    <div class="pb-page-sub">Counter {{ counter.label }} &nbsp;·&nbsp; {{ branch.name }}</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-pb-primary" id="btn-call-next">
+      <i class="ti ti-phone-call"></i> Call next
+    </button>
+    <span class="pb-badge green" id="connection-status">
+      <span class="pb-online-dot"></span> Online
+    </span>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="pb-stat-grid">
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon red"><i class="ti ti-users"></i></div>
+    <div class="pb-stat-value" id="stat-served">{{ stats.served_today }}</div>
+    <div class="pb-stat-label">Served today</div>
+    <div class="pb-stat-delta up">↑ {{ stats.served_delta }} vs yesterday</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon yellow"><i class="ti ti-clock-hour-4"></i></div>
+    <div class="pb-stat-value"><span id="waiting-count">{{ stats.waiting }}</span></div>
+    <div class="pb-stat-label">Waiting now</div>
+    <div class="pb-stat-delta {{ 'warn' if stats.priority_waiting else '' }}">
+      {% if stats.priority_waiting %}{{ stats.priority_waiting }} priority{% else %}No priority{% endif %}
+    </div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon green"><i class="ti ti-timer"></i></div>
+    <div class="pb-stat-value">{{ stats.avg_service_min }}m</div>
+    <div class="pb-stat-label">Avg. service time</div>
+    <div class="pb-stat-delta up">Target: 10m</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon dark"><i class="ti ti-star"></i></div>
+    <div class="pb-stat-value">{{ stats.avg_rating }}★</div>
+    <div class="pb-stat-label">Satisfaction today</div>
+    <div class="pb-stat-delta up">{{ stats.rating_count }} ratings</div>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Now serving -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-user-check" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Now serving</div>
+      <span class="pb-badge green"><span class="pb-online-dot"></span> Active</span>
+    </div>
+    <div class="pb-card-body">
+      <div id="serving-section">
+        <div class="text-center py-4" style="color:#aaa;">
+          <i class="ti ti-armchair-2" style="font-size:36px;opacity:.3;display:block;margin-bottom:8px;"></i>
+          No customer currently serving
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Queue list -->
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-list-numbers" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Waiting queue</div>
+      <span style="font-size:12px;color:#888;"><span id="queue-count">—</span> waiting</span>
+    </div>
+    <div class="pb-card-body" style="padding:8px;">
+      <div id="queue-list" style="max-height:360px;overflow-y:auto;">
+        <div class="text-center py-4" style="color:#aaa;font-size:13px;">
+          <i class="ti ti-loader" style="font-size:24px;opacity:.3;display:block;margin-bottom:6px;"></i>
+          Loading queue…
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Second row: Charts + history -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-chart-bar" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Hourly throughput</div>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="hourly-chart" height="120"></canvas>
+    </div>
+  </div>
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-history" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Recently completed</div>
+    </div>
+    <div class="pb-card-body" style="padding:0;">
+      <table class="pb-table">
+        <thead><tr><th>Token</th><th>Customer</th><th>Service</th><th>Duration</th><th>Rating</th></tr></thead>
+        <tbody>
+          {% for t in recent_tokens %}
+          <tr>
+            <td><strong>{{ t.token_number }}</strong></td>
+            <td>{{ t.customer.full_name }}</td>
+            <td><span class="pb-badge dark">{{ t.service_type.name }}</span></td>
+            <td>{{ t.service_duration_minutes or '—' }}m</td>
+            <td>{% if t.rating %}<span style="color:var(--pb-yellow);">★</span> {{ t.rating.rating }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/officer-console.js') }}"></script>
+<script>
+  // Init officer console
+  OfficerConsole.init({{ counter.id }}, {{ branch.id }});
+
+  // Hourly chart
+  const ctx = document.getElementById('hourly-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ hourly_labels | tojson }},
+      datasets: [{
+        label: 'Customers served',
+        data: {{ hourly_data | tojson }},
+        backgroundColor: (ctx) => ctx.dataIndex === {{ peak_hour }} ? '#99c630' : '#c80000',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endblock %}

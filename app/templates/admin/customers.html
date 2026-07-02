@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Customers — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Customer Management</div>
+    <div class="pb-page-sub">Monitor and manage all customers</div>
+  </div>
+  <a href="/admin/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title">All Customers</div>
+  </div>
+  <table class="pb-table">
+    <thead>
+      <tr>
+        <th>Full Name</th>
+        <th>Mobile</th>
+        <th>NIC/Passport</th>
+        <th>Registered</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for customer in customers %}
+      <tr>
+        <td><strong>{{ customer.full_name }}</strong></td>
+        <td>{{ customer.mobile }}</td>
+        <td>{{ customer.nic_passport or '-' }}</td>
+        <td>{{ customer.created_at.strftime('%Y-%m-%d') }}</td>
+        <td><span class="badge" style="background:#10b981;">Active</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

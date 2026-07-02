@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Queue Display — {{ branch.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/pbqms.css') }}" rel="stylesheet">
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    html, body { height:100%; background:#0d0d0d; color:#fff; font-family:'Inter','Segoe UI',sans-serif; overflow:hidden; }
+    .display-root { display:grid; grid-template-rows:auto 1fr auto; height:100vh; padding:20px 24px; gap:16px; }
+
+    /* Header */
+    .d-header { display:flex; align-items:center; justify-content:space-between; }
+    .d-logo-row { display:flex; align-items:center; gap:14px; }
+    .d-logo-mark { width:44px; height:44px; border-radius:10px; background:#c80000; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; color:#fff; }
+    .d-logo-text { font-size:18px; font-weight:700; color:#c80000; letter-spacing:2px; }
+    .d-logo-sub  { font-size:11px; color:rgba(255,255,255,.4); margin-top:1px; }
+    .d-header-right { display:flex; align-items:center; gap:16px; }
+    .d-time { font-size:24px; font-weight:500; color:rgba(255,255,255,.8); }
+    .d-date { font-size:12px; color:rgba(255,255,255,.35); text-align:right; }
+    .d-wait-badge { background:rgba(255,203,71,.12); border:0.5px solid rgba(255,203,71,.3); border-radius:8px; padding:6px 14px; }
+    .d-wait-val { font-size:18px; font-weight:600; color:#FFCB47; line-height:1; }
+    .d-wait-lbl { font-size:10px; color:rgba(255,203,71,.6); }
+
+    /* Main grid */
+    .d-main { display:grid; grid-template-columns:1.4fr 1fr; gap:16px; min-height:0; }
+
+    /* Now serving */
+    .d-serving-card { background:rgba(200,0,0,.1); border:0.5px solid rgba(200,0,0,.4); border-radius:16px; padding:28px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    .d-serving-label { font-size:12px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+    .d-serving-token { font-size:96px; font-weight:700; color:#c80000; letter-spacing:10px; line-height:1; transition:opacity .3s, transform .3s; }
+    .d-serving-name  { font-size:20px; color:rgba(255,255,255,.75); margin-top:10px; }
+    .d-serving-counter { font-size:36px; font-weight:600; color:#fff; margin-top:6px; }
+    .d-serving-svc { font-size:13px; color:rgba(255,255,255,.4); margin-top:4px; }
+    .d-priority-badge { display:inline-flex; align-items:center; gap:6px; background:#FFCB47; color:#6b5800; border-radius:6px; font-size:13px; font-weight:600; padding:5px 14px; margin-top:10px; }
+    .d-empty { font-size:16px; color:rgba(255,255,255,.3); }
+
+    /* Right panel */
+    .d-right { display:flex; flex-direction:column; gap:12px; min-height:0; }
+    .d-recent-panel { background:#111; border-radius:12px; padding:14px; flex:1; overflow:hidden; }
+    .d-panel-title { font-size:10px; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; }
+    .d-recent-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:0.5px solid rgba(255,255,255,.06); }
+    .d-recent-row:last-child { border:none; }
+    .d-recent-num { font-size:16px; font-weight:600; color:rgba(255,255,255,.85); min-width:52px; }
+    .d-recent-name{ font-size:12px; color:rgba(255,255,255,.45); flex:1; padding:0 10px; }
+    .d-recent-ctr { font-size:12px; color:rgba(255,255,255,.35); }
+
+    .d-next-row-wrap { display:flex; gap:8px; }
+    .d-next-badge { flex:1; border-radius:10px; padding:10px; text-align:center; }
+    .d-next-red    { background:rgba(200,0,0,.12); border:0.5px solid rgba(200,0,0,.3); }
+    .d-next-green  { background:rgba(153,198,48,.08); border:0.5px solid rgba(153,198,48,.25); }
+    .d-next-yellow { background:rgba(255,203,71,.08); border:0.5px solid rgba(255,203,71,.25); }
+    .d-next-dark   { background:rgba(76,78,84,.15); border:0.5px solid rgba(76,78,84,.3); }
+    .d-next-num    { font-size:22px; font-weight:700; line-height:1; }
+    .d-next-lbl    { font-size:9px; margin-top:3px; opacity:.5; }
+    .nb-red    { color:#c80000; }
+    .nb-green  { color:#99c630; }
+    .nb-yellow { color:#FFCB47; }
+    .nb-dark   { color:rgba(255,255,255,.55); }
+
+    /* Ticker */
+    .d-ticker { background:#0a0a0a; border-radius:8px; padding:10px 16px; overflow:hidden; }
+    .d-ticker-inner { white-space:nowrap; display:inline-block; animation:pb-scroll 18s linear infinite; font-size:14px; color:#c80000; letter-spacing:.3px; }
+    @keyframes pb-scroll { 0%{transform:translateX(100vw)} 100%{transform:translateX(-100%)} }
+
+    /* Flash animation for new token */
+    @keyframes tokenFlash {
+      0%   { opacity:0; transform:scale(.75); }
+      60%  { opacity:1; transform:scale(1.05); }
+      100% { transform:scale(1); }
+    }
+    .token-flash { animation:tokenFlash .5s ease forwards; }
+  </style>
+</head>
+<body>
+<div class="display-root">
+
+  <!-- Header -->
+  <div class="d-header">
+    <div class="d-logo-row">
+      <div class="d-logo-mark">PB</div>
+      <div>
+        <div class="d-logo-text">PEOPLE'S BANK</div>
+        <div class="d-logo-sub">{{ branch.name }} &nbsp;·&nbsp; Queue Display</div>
+      </div>
+    </div>
+    <div class="d-header-right">
+      <div class="d-wait-badge">
+        <div class="d-wait-val"><span id="waiting-count">0</span></div>
+        <div class="d-wait-lbl">Waiting</div>
+      </div>
+      <div>
+        <div class="d-time" id="d-clock">00:00</div>
+        <div class="d-date" id="d-date"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="d-main">
+
+    <!-- Now serving -->
+    <div class="d-serving-card">
+      <div class="d-serving-label">Now serving</div>
+      <div class="d-serving-token" id="d-token">—</div>
+      <div class="d-serving-name" id="d-name">Waiting for first customer</div>
+      <div class="d-serving-counter" id="d-counter"></div>
+      <div class="d-serving-svc" id="d-svc"></div>
+      <div class="d-priority-badge" id="d-priority" style="display:none;">
+        <i class="ti ti-accessibility"></i> <span id="d-priority-text">Priority</span>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="d-right">
+      <div class="d-recent-panel">
+        <div class="d-panel-title">Recently called</div>
+        <div id="d-recent-list">
+          <div class="d-recent-row">
+            <div class="d-recent-num" style="color:rgba(255,255,255,.2);">—</div>
+            <div class="d-recent-name" style="color:rgba(255,255,255,.15);">Waiting…</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="d-panel-title" style="padding-left:4px;margin-bottom:8px;">Up next</div>
+        <div class="d-next-row-wrap" id="d-next-badges">
+          <div class="d-next-badge d-next-red"><div class="d-next-num nb-red" id="next-ao">—</div><div class="d-next-lbl">Acct. Opening</div></div>
+          <div class="d-next-badge d-next-yellow"><div class="d-next-num nb-yellow" id="next-fd">—</div><div class="d-next-lbl">Fixed Deposit</div></div>
+          <div class="d-next-badge d-next-green"><div class="d-next-num nb-green" id="next-ln">—</div><div class="d-next-lbl">Loans</div></div>
+          <div class="d-next-badge d-next-dark"><div class="d-next-num nb-dark" id="next-ot">—</div><div class="d-next-lbl">Other</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="d-ticker">
+    <div class="d-ticker-inner" id="d-ticker">
+      Welcome to People's Bank &nbsp;·&nbsp; Please take a seat and wait for your token number to be called &nbsp;·&nbsp;
+      Priority service available for elderly, pregnant, and disabled customers &nbsp;·&nbsp;
+      Thank you for banking with People's Bank Sri Lanka
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client-dist/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/queue-display.js') }}"></script>
+<script>
+  // Date display
+  function updateDate() {
+    document.getElementById('d-date').textContent = new Date().toLocaleDateString('en-LK', {
+      weekday:'long', day:'numeric', month:'long', year:'numeric'
+    });
+  }
+  updateDate();
+
+  // Enhance QueueDisplay with DOM updates
+  const _origHandle = QueueDisplay;
+
+  const socket = io({ transports: ['websocket', 'polling'] });
+  socket.on('connect', () => socket.emit('join_branch_display', { branch_code: '{{ branch.code }}' }));
+
+  socket.on('queue_update', data => {
+    document.getElementById('waiting-count').textContent = data.waiting_count || 0;
+
+    if (!data.serving || !data.serving.length) return;
+
+    const primary = data.serving[0];
+
+    // Animate token number
+    const tokenEl = document.getElementById('d-token');
+    tokenEl.style.opacity = '0';
+    tokenEl.style.transform = 'scale(.8)';
+    setTimeout(() => {
+      tokenEl.textContent = primary.token;
+      tokenEl.style.transition = 'opacity .4s, transform .4s';
+      tokenEl.style.opacity = '1';
+      tokenEl.style.transform = 'scale(1)';
+    }, 250);
+
+    document.getElementById('d-name').textContent    = primary.customer_name;
+    document.getElementById('d-counter').textContent = primary.counter || '';
+    document.getElementById('d-svc').textContent     = primary.service || '';
+
+    const priBadge = document.getElementById('d-priority');
+    if (primary.is_priority && primary.priority_reason !== 'none') {
+      priBadge.style.display = 'inline-flex';
+      document.getElementById('d-priority-text').textContent =
+        'Priority — ' + primary.priority_reason.charAt(0).toUpperCase() + primary.priority_reason.slice(1);
+
+      // Voice announcement
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const txt = `Priority customer. Token ${primary.token.split('').join(' ')}. ${primary.customer_name}. Please proceed to ${primary.counter}.`;
+        const utter = new SpeechSynthesisUtterance(txt);
+        utter.lang = 'en-US'; utter.rate = 0.85;
+        window.speechSynthesis.speak(utter);
+      }
+    } else {
+      priBadge.style.display = 'none';
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const txt = `Token ${primary.token.split('').join(' ')}. ${primary.customer_name}. Please proceed to ${primary.counter}.`;
+        const utter = new SpeechSynthesisUtterance(txt);
+        utter.lang = 'en-US'; utter.rate = 0.85;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    // Recent list
+    const recentEl = document.getElementById('d-recent-list');
+    recentEl.innerHTML = data.serving.map(t => `
+      <div class="d-recent-row">
+        <div class="d-recent-num">${t.token}</div>
+        <div class="d-recent-name">${t.customer_name}</div>
+        <div class="d-recent-ctr">${t.counter}</div>
+      </div>
+    `).join('');
+
+    // Next tokens
+    if (data.next && data.next.length) {
+      const byService = {};
+      data.next.forEach(t => { if (!byService[t.service_code]) byService[t.service_code] = t.token; });
+      if (byService['AO']) document.getElementById('next-ao').textContent = byService['AO'];
+      if (byService['FD']) document.getElementById('next-fd').textContent = byService['FD'];
+      if (byService['LN']) document.getElementById('next-ln').textContent = byService['LN'];
+      if (byService['OT']) document.getElementById('next-ot').textContent = byService['OT'];
+    }
+
+    // Ticker
+    if (primary.is_priority) {
+      document.getElementById('d-ticker').textContent =
+        `Token ${primary.token} — PRIORITY — ${primary.customer_name} — Please proceed to ${primary.counter} · ` +
+        `Wheelchair access and priority seating available · Thank you for banking with People's Bank`;
+    }
+  });
+
+  socket.on('disconnect', () => setTimeout(() => location.reload(), 5000));
+
+  // Clock
+  setInterval(() => {
+    document.getElementById('d-clock').textContent =
+      new Date().toLocaleTimeString('en-LK', { hour:'2-digit', minute:'2-digit' });
+  }, 1000);
+
+  // Periodic poll fallback
+  async function pollFallback() {
+    try {
+      const r = await fetch('/api/queue/display/{{ branch.code }}');
+      const data = await r.json();
+      socket.emit('queue_update', data); // Reuse same handler
+    } catch {}
+  }
+  setInterval(pollFallback, 25000);
+  pollFallback();
+</script>
+</body>
+</html>

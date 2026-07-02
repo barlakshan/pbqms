@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — People's Bank Queue System</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/pbqms.css') }}" rel="stylesheet">
+  <style>
+    body{background:#f4f4f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .login-card{background:#fff;border:0.5px solid #d1d2d5;border-radius:16px;overflow:hidden;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(76,78,84,.1);}
+    .login-header{background:#c80000;padding:28px 24px;text-align:center;}
+    .login-logo{width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;margin:0 auto 12px;}
+    .login-title{font-size:18px;font-weight:600;color:#fff;margin-bottom:3px;}
+    .login-sub{font-size:12px;color:rgba(255,255,255,.7);}
+    .login-body{padding:28px 24px;}
+    .flash-msg{border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+    .flash-msg.danger{background:#fff0f0;border:0.5px solid rgba(200,0,0,.25);color:#c80000;}
+    .flash-msg.info{background:#f3fbe0;border:0.5px solid #99c630;color:#3d6e00;}
+    .flash-msg.warning{background:#fffbec;border:0.5px solid #FFCB47;color:#6b5800;}
+    .pb-form-group{margin-bottom:16px;}
+    .pb-form-label{font-size:12px;font-weight:500;color:#4c4e54;margin-bottom:4px;display:block;}
+    .pb-form-control{width:100%;background:#f4f4f5;border:0.5px solid #d1d2d5;border-radius:8px;padding:10px 12px;font-size:13px;color:#4c4e54;outline:none;transition:border-color .12s,box-shadow .12s;font-family:inherit;}
+    .pb-form-control:focus{border-color:#c80000;box-shadow:0 0 0 3px rgba(200,0,0,.1);}
+    .btn-pb-primary{background:#c80000;color:#fff;border:none;border-radius:8px;padding:11px 0;font-size:14px;font-weight:500;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
+    .btn-pb-primary:hover{background:#a50000;}
+    .login-footer{text-align:center;margin-top:20px;font-size:12px;color:#888;}
+    .input-wrap{position:relative;}
+    .input-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:16px;pointer-events:none;}
+    .pb-form-control.has-icon{padding-left:34px;}
+  </style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-header">
+    <div class="login-logo">PB</div>
+    <div class="login-title">People's Bank Sri Lanka</div>
+    <div class="login-sub">Queue Management System — Staff Portal</div>
+  </div>
+  <div class="login-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash-msg {{ cat }}">
+          <i class="ti ti-{{ 'alert-circle' if cat == 'danger' else 'circle-check' if cat == 'info' else 'alert-triangle' }}" aria-hidden="true"></i>
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth_api.login') }}">
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="email">Email address</label>
+        <div class="input-wrap">
+          <i class="ti ti-mail input-icon" aria-hidden="true"></i>
+          <input type="email" id="email" name="email" class="pb-form-control has-icon"
+                 placeholder="officer@peoplesbank.lk" required autocomplete="email" autofocus>
+        </div>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="password">Password</label>
+        <div class="input-wrap">
+          <i class="ti ti-lock input-icon" aria-hidden="true"></i>
+          <input type="password" id="password" name="password" class="pb-form-control has-icon"
+                 placeholder="••••••••" required autocomplete="current-password">
+        </div>
+      </div>
+      <button type="submit" class="btn-pb-primary">
+        <i class="ti ti-login" aria-hidden="true"></i> Sign in
+      </button>
+    </form>
+    <div class="login-footer">
+      People's Bank Sri Lanka &copy; 2025 &nbsp;·&nbsp; Queue Management System
+    </div>
+  </div>
+</div>
+</body>
+</html>

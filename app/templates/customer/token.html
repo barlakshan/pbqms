@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Token — People's Bank</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/pbqms.css') }}" rel="stylesheet">
+  <style>
+    body { background:#f4f4f5; display:flex; min-height:100vh; align-items:flex-start; justify-content:center; padding:20px 16px; }
+    .wrap { width:100%; max-width:400px; }
+    .top-bar { background:var(--pb-red); border-radius:12px 12px 0 0; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .top-bar-brand { display:flex; align-items:center; gap:8px; }
+    .brand-circle { width:30px; height:30px; border-radius:7px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#fff; }
+    .brand-nm { font-size:13px; font-weight:600; color:#fff; }
+    .brand-sub { font-size:10px; color:rgba(255,255,255,.65); }
+    .body { background:#fff; border:0.5px solid #d1d2d5; border-top:none; border-radius:0 0 12px 12px; padding:20px; }
+    .ticket { background:var(--pb-red); border-radius:12px; padding:20px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
+    .ticket::before { content:''; position:absolute; right:-20px; top:-20px; width:80px; height:80px; background:rgba(255,255,255,.07); border-radius:50%; }
+    .ticket::after  { content:''; position:absolute; left:-15px; bottom:-15px; width:60px; height:60px; background:rgba(255,255,255,.05); border-radius:50%; }
+    .t-svc { font-size:10px; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
+    .t-num { font-size:52px; font-weight:700; color:#fff; letter-spacing:6px; line-height:1; }
+    .t-row { display:flex; gap:7px; margin-top:12px; }
+    .t-box { flex:1; background:rgba(255,255,255,.13); border-radius:6px; padding:7px 4px; text-align:center; }
+    .t-val { font-size:15px; font-weight:600; color:#fff; }
+    .t-lbl { font-size:8px; color:rgba(255,255,255,.62); margin-top:2px; }
+    .sms-banner { background:var(--pb-green-light); border:0.5px solid var(--pb-green); border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:8px; font-size:12px; color:#3d6e00; margin-bottom:12px; }
+    .status-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .online { display:flex; align-items:center; gap:5px; font-size:11px; color:#666; }
+    .online-dot { width:7px; height:7px; border-radius:50%; background:var(--pb-green); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .wait-track { background:#e8e8e8; border-radius:99px; height:5px; margin-bottom:10px; overflow:hidden; }
+    .wait-fill  { height:100%; border-radius:99px; background:var(--pb-green); transition:width .6s ease; }
+    .pos-text { font-size:12px; color:#888; text-align:center; margin-bottom:12px; }
+    .called-alert { background:var(--pb-green-light); border:0.5px solid var(--pb-green); border-radius:10px; padding:16px; text-align:center; margin-bottom:14px; display:none; }
+    .called-big { font-size:28px; font-weight:700; color:#1B6117; letter-spacing:3px; }
+    .called-sub { font-size:13px; color:#3d6e00; margin-top:4px; }
+    .called-counter { font-size:22px; font-weight:700; color:#1B6117; margin-top:4px; }
+    .rating-section { border-top:0.5px solid #eee; padding-top:14px; margin-top:4px; display:none; }
+    .rating-lbl { font-size:13px; font-weight:500; color:var(--pb-dark); text-align:center; margin-bottom:10px; }
+    .stars { display:flex; justify-content:center; gap:10px; margin-bottom:12px; }
+    .star { font-size:32px; color:#d1d2d5; cursor:pointer; transition:color .12s, transform .12s; }
+    .star:hover, .star.lit { color:var(--pb-yellow); }
+    .star:hover { transform:scale(1.15); }
+    .no-customer-section { text-align:center; padding:20px 0; display:none; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-bar">
+    <div class="top-bar-brand">
+      <div class="brand-circle">PB</div>
+      <div><div class="brand-nm">People's Bank</div><div class="brand-sub">{{ branch_name }}</div></div>
+    </div>
+    <div style="font-size:10px;color:rgba(255,255,255,.6);" id="live-time"></div>
+  </div>
+
+  <div class="body">
+    <!-- Ticket -->
+    <div class="ticket" id="ticket-card">
+      <div class="t-svc">{{ service_name }}</div>
+      <div class="t-num" id="token-number">{{ token_number }}</div>
+      <div class="t-row">
+        <div class="t-box"><div class="t-val" id="position">{{ position }}</div><div class="t-lbl">Ahead of you</div></div>
+        <div class="t-box"><div class="t-val" id="est-wait">~{{ estimated_wait }}m</div><div class="t-lbl">Est. wait</div></div>
+        <div class="t-box"><div class="t-val" id="now-serving">—</div><div class="t-lbl">Now serving</div></div>
+      </div>
+      {% if is_priority %}
+      <div style="margin-top:10px;background:rgba(255,203,71,.2);border-radius:5px;padding:4px 8px;display:inline-block;">
+        <span style="font-size:10px;color:#fff;font-weight:500;">★ Priority — {{ priority_reason }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- SMS confirmation -->
+    <div class="sms-banner">
+      <i class="ti ti-device-mobile-message" style="font-size:18px;flex-shrink:0;"></i>
+      <div>SMS confirmation sent to <strong>{{ mobile_masked }}</strong></div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-row">
+      <div class="online"><div class="online-dot"></div>Queue active</div>
+      <span class="pb-badge green" style="font-size:11px;" id="status-badge">Waiting</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="wait-track"><div class="wait-fill" id="wait-fill" style="width:{{ wait_pct }}%;"></div></div>
+    <div class="pos-text" id="pos-text">You are number <strong>{{ position }}</strong> in queue</div>
+
+    <!-- Called notification (shown when status = called) -->
+    <div class="called-alert" id="called-alert">
+      <i class="ti ti-bell-ringing" style="font-size:28px;color:#1B6117;margin-bottom:6px;display:block;"></i>
+      <div class="called-big" id="call-token">{{ token_number }}</div>
+      <div class="called-sub">Please proceed to</div>
+      <div class="called-counter" id="call-counter">Counter —</div>
+      <div style="font-size:11px;color:#4a8000;margin-top:4px;" id="call-officer"></div>
+    </div>
+
+    <!-- Rating section (shown after service complete) -->
+    <div class="rating-section" id="rating-section">
+      <div class="rating-lbl">How was your experience?</div>
+      <div class="stars" id="stars">
+        <span class="star" data-v="1">★</span>
+        <span class="star" data-v="2">★</span>
+        <span class="star" data-v="3">★</span>
+        <span class="star" data-v="4">★</span>
+        <span class="star" data-v="5">★</span>
+      </div>
+      <div class="pb-form-group">
+        <textarea id="rating-comment" class="pb-form-control" rows="2" placeholder="Any comments? (optional)"></textarea>
+      </div>
+      <button class="btn-pb-success" id="submit-rating" style="width:100%;display:none;" onclick="submitRating()">
+        <i class="ti ti-check"></i> Submit rating
+      </button>
+      <div id="rating-done" style="display:none;text-align:center;font-size:13px;color:#3d6e00;">
+        <i class="ti ti-circle-check" style="font-size:22px;display:block;margin-bottom:4px;"></i>
+        Thank you for your feedback!
+      </div>
+    </div>
+
+    <button class="btn-pb-outline" onclick="pollStatus()" style="width:100%;margin-top:8px;" id="refresh-btn">
+      <i class="ti ti-refresh"></i> Refresh status
+    </button>
+  </div>
+</div>
+
+<script>
+  const TOKEN_ID = {{ token_id }};
+  let selectedRating = 0;
+  let pollTimer = null;
+
+  // Live clock
+  function updateClock() {
+    document.getElementById('live-time').textContent =
+      new Date().toLocaleTimeString('en-LK', { hour:'2-digit', minute:'2-digit' });
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Star rating
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', () => {
+      selectedRating = parseInt(star.dataset.v);
+      document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('lit', i < selectedRating));
+      document.getElementById('submit-rating').style.display = 'block';
+    });
+  });
+
+  // Poll queue status
+  async function pollStatus() {
+    try {
+      const r = await fetch(`/api/queue/token/${TOKEN_ID}/status`);
+      const data = await r.json();
+      updateUI(data);
+    } catch(e) { console.error('Poll failed', e); }
+  }
+
+  function updateUI(data) {
+    const status = data.status;
+
+    // Update position
+    if (typeof data.position === 'number') {
+      document.getElementById('position').textContent = data.position;
+      document.getElementById('pos-text').innerHTML =
+        data.position === 0
+          ? '<strong style="color:var(--pb-green);">You\'re next!</strong>'
+          : `You are number <strong>${data.position}</strong> in queue`;
+
+      const pct = Math.max(5, 100 - (data.position / 20 * 100));
+      document.getElementById('wait-fill').style.width = pct + '%';
+    }
+
+    if (data.now_serving) {
+      document.getElementById('now-serving').textContent = data.now_serving;
+    }
+
+    // Status transitions
+    if (status === 'called' || status === 'serving') {
+      document.getElementById('ticket-card').style.display = 'none';
+      document.getElementById('called-alert').style.display = 'block';
+      document.getElementById('status-badge').textContent = 'Called!';
+      document.getElementById('status-badge').className = 'pb-badge red';
+      if (data.counter) document.getElementById('call-counter').textContent = data.counter;
+      if (data.officer) document.getElementById('call-officer').innerHTML =
+        `<i class="ti ti-user"></i> Officer: ${data.officer}`;
+      clearInterval(pollTimer);
+      // Show rating after 3 min
+      setTimeout(() => document.getElementById('rating-section').style.display = 'block', 180000);
+    }
+
+    if (status === 'completed') {
+      document.getElementById('ticket-card').style.display = 'none';
+      document.getElementById('called-alert').style.display = 'none';
+      document.getElementById('rating-section').style.display = 'block';
+      document.getElementById('status-badge').textContent = 'Completed';
+      document.getElementById('status-badge').className = 'pb-badge green';
+      document.getElementById('pos-text').innerHTML =
+        '<span style="color:var(--pb-green);">Service completed — thank you!</span>';
+      clearInterval(pollTimer);
+    }
+  }
+
+  async function submitRating() {
+    if (!selectedRating) return;
+    const comment = document.getElementById('rating-comment').value;
+    try {
+      await fetch(`/api/queue/token/${TOKEN_ID}/rate`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ rating: selectedRating, comment }),
+      });
+      document.getElementById('submit-rating').style.display = 'none';
+      document.getElementById('rating-done').style.display = 'block';
+      document.getElementById('rating-comment').style.display = 'none';
+      document.querySelectorAll('.star').forEach(s => s.style.cursor = 'default');
+    } catch { alert('Could not submit rating — please try again.'); }
+  }
+
+  // Auto-poll every 20 seconds
+  pollTimer = setInterval(pollStatus, 20000);
+  pollStatus();
+</script>
+</body>
+</html>

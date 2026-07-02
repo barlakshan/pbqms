@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">System Analytics</div>
+    <div class="pb-page-sub">Historical data and performance metrics</div>
+  </div>
+  <a href="/admin/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title">Tokens Generated (Last 30 Days)</div>
+  </div>
+  <div id="chart-container" style="height:400px;"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const dailyStats = {{ daily_stats | tojson }};
+  const ctx = document.getElementById('chart-container').getContext('2d');
+  
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dailyStats.map(d => d.date),
+      datasets: [{
+        label: 'Tokens Generated',
+        data: dailyStats.map(d => d.tokens),
+        borderColor: '#0066cc',
+        backgroundColor: 'rgba(0, 102, 204, 0.1)',
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+</script>
+{% endblock %}

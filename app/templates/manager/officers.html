@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Officer Management — Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Officer Management</div>
+    <div class="pb-page-sub">Add lobby and loan officers for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/manager/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card" style="max-width:760px; margin-bottom:16px;">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-user-plus" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Add officer</div>
+  </div>
+  <div class="pb-card-body">
+    <form method="POST">
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="employee_id">Employee ID *</label>
+        <input id="employee_id" name="employee_id" class="pb-form-control" type="text" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="full_name">Full name *</label>
+        <input id="full_name" name="full_name" class="pb-form-control" type="text" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="email">Email *</label>
+        <input id="email" name="email" class="pb-form-control" type="email" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="password">Password *</label>
+        <input id="password" name="password" class="pb-form-control" type="password" required>
+      </div>
+      <div class="pb-form-group">
+        <label class="pb-form-label" for="role">Role *</label>
+        <select id="role" name="role" class="pb-form-control" required>
+          <option value="">Select role</option>
+          {% for role in allowed_roles %}
+          <option value="{{ role.name }}">{{ role.value.replace('_',' ').title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-pb-primary">Create officer</button>
+    </form>
+  </div>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-users" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Officers in this branch</div>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead>
+        <tr><th>Employee ID</th><th>Name</th><th>Email</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        {% for officer in officers %}
+        <tr>
+          <td><strong>{{ officer.employee_id }}</strong></td>
+          <td>{{ officer.full_name }}</td>
+          <td>{{ officer.email }}</td>
+          <td>{{ officer.role.value.replace('_',' ').title() }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center py-4" style="color:#aaa;">No officers added yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

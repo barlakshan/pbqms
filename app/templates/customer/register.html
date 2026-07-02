@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Queue — People's Bank</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/pbqms.css') }}" rel="stylesheet">
+  <style>
+    body { background: #f4f4f5; display: flex; min-height: 100vh; align-items: flex-start; justify-content: center; padding: 20px 16px; }
+    .reg-wrap { width: 100%; max-width: 400px; }
+    .reg-header { background: var(--pb-red); border-radius: 12px 12px 0 0; padding: 16px; display: flex; align-items: center; gap: 10px; }
+    .reg-logo { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+    .reg-body { background: #fff; border-radius: 0 0 12px 12px; border: 0.5px solid #d1d2d5; border-top: none; padding: 20px; }
+    .branch-info { background: var(--pb-yellow-light); border: 0.5px solid var(--pb-yellow); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #6b5800; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+    .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+    .service-option { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 0.5px solid #d1d2d5; border-radius: 8px; cursor: pointer; font-size: 12px; color: #4c4e54; background: #f4f4f5; transition: all .12s; }
+    .service-option:hover { border-color: var(--pb-red); color: var(--pb-red); }
+    .service-option.selected { background: var(--pb-red-light); border-color: var(--pb-red); color: var(--pb-red); font-weight: 500; }
+    .service-option input { display: none; }
+    #other-reason { display: none; margin-top: 8px; }
+    .wait-info { background: var(--pb-dark-light); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #666; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+<div class="reg-wrap">
+  <div class="reg-header">
+    <div class="reg-logo">PB</div>
+    <div>
+      <div style="font-size:15px;font-weight:600;color:#fff;">People's Bank</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7);">Queue Registration</div>
+    </div>
+  </div>
+
+  <div class="reg-body">
+    <div class="branch-info">
+      <i class="ti ti-building"></i>
+      <strong>{{ branch.name }}</strong> &nbsp;·&nbsp; {{ branch.city }}
+    </div>
+
+    <div class="wait-info">
+      <span><i class="ti ti-clock" style="font-size:14px;margin-right:4px;color:var(--pb-red)"></i> Current waiting time</span>
+      <strong style="color:var(--pb-red);">~{{ avg_wait }} min</strong>
+    </div>
+
+    <form id="reg-form">
+      <input type="hidden" name="branch_id" value="{{ branch.id }}">
+
+      <div class="pb-form-group">
+        <label class="pb-form-label"><i class="ti ti-user" style="font-size:14px;margin-right:4px;color:#aaa"></i>Full name *</label>
+        <input type="text" name="full_name" class="pb-form-control" placeholder="e.g. Saman Perera" required autocomplete="name">
+      </div>
+
+      <div class="pb-form-group">
+        <label class="pb-form-label"><i class="ti ti-device-mobile" style="font-size:14px;margin-right:4px;color:#aaa"></i>Mobile number *</label>
+        <input type="tel" name="mobile" class="pb-form-control" placeholder="+94 77 000 0000" required autocomplete="tel">
+      </div>
+
+      <div class="pb-form-group">
+        <label class="pb-form-label" style="margin-bottom:8px;">Service required *</label>
+        <div class="service-grid">
+          {% for svc in services %}
+          <label class="service-option" for="svc-{{ svc.id }}">
+            <input type="radio" id="svc-{{ svc.id }}" name="service_type_id" value="{{ svc.id }}" {% if svc.code == 'OT' %}data-other="true"{% endif %} required>
+            <i class="ti ti-{{ svc.code == 'AO' and 'credit-card' or svc.code == 'AC' and 'credit-card-off' or svc.code == 'FD' and 'piggy-bank' or svc.code == 'LN' and 'cash' or 'dots-circle-horizontal' }}"></i>
+            {{ svc.name }}
+          </label>
+          {% endfor %}
+        </div>
+        <div id="other-reason">
+          <label class="pb-form-label" style="margin-top:8px;">Please describe your request *</label>
+          <textarea name="custom_reason" class="pb-form-control" rows="2" placeholder="e.g. Change account signatory details"></textarea>
+        </div>
+      </div>
+
+      <div class="pb-priority-toggle mb-3" onclick="togglePriority(this)">
+        <div class="pb-priority-toggle-label">
+          <i class="ti ti-accessibility"></i> Priority customer (elderly, pregnant, disabled)?
+        </div>
+        <div class="pb-toggle-pill" id="priority-toggle"></div>
+        <input type="hidden" name="priority_reason" id="priority-reason" value="NONE">
+      </div>
+
+      <div id="priority-options" style="display:none;margin-bottom:12px;">
+        <div class="pb-chip-group">
+          <div class="pb-chip" onclick="setPriorityReason('ELDERLY',this)"><i class="ti ti-user"></i> Elderly</div>
+          <div class="pb-chip" onclick="setPriorityReason('PREGNANT',this)"><i class="ti ti-heart"></i> Pregnant</div>
+          <div class="pb-chip" onclick="setPriorityReason('DISABLED',this)"><i class="ti ti-wheelchair"></i> Disabled</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-pb-primary w-100" id="submit-btn" style="width:100%;padding:12px;font-size:14px;">
+        <i class="ti ti-ticket"></i> Get my queue number
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Service selection
+  document.querySelectorAll('.service-option').forEach(label => {
+    label.addEventListener('click', () => {
+      document.querySelectorAll('.service-option').forEach(l => l.classList.remove('selected'));
+      label.classList.add('selected');
+      const input = label.querySelector('input');
+      document.getElementById('other-reason').style.display = input.dataset.other ? 'block' : 'none';
+    });
+  });
+
+  // Priority toggle
+  let priorityOn = false;
+  function togglePriority(el) {
+    priorityOn = !priorityOn;
+    el.querySelector('.pb-toggle-pill').classList.toggle('on', priorityOn);
+    document.getElementById('priority-options').style.display = priorityOn ? 'block' : 'none';
+    if (!priorityOn) document.getElementById('priority-reason').value = 'NONE';
+  }
+  function setPriorityReason(reason, el) {
+    document.querySelectorAll('#priority-options .pb-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('priority-reason').value = reason;
+  }
+
+  // Form submission
+  document.getElementById('reg-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader"></i> Registering…';
+
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    data.branch_id = parseInt(data.branch_id);
+    data.service_type_id = parseInt(data.service_type_id);
+
+    try {
+      const resp = await fetch('/api/queue/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await resp.json();
+      if (resp.ok) {
+        window.location.href = `/register/token/${result.token_id}`;
+      } else {
+        alert(result.error || 'Registration failed. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-ticket"></i> Get my queue number';
+      }
+    } catch {
+      alert('Network error — please try again.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-ticket"></i> Get my queue number';
+    }
+  });
+</script>
+</body>
+</html>

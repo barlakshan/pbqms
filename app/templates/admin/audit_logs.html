@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Audit Logs</div>
+    <div class="pb-page-sub">System activity and administrative actions</div>
+  </div>
+  <a href="/admin/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title">Recent Activity</div>
+  </div>
+  <table class="pb-table">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Action</th>
+        <th>User</th>
+        <th>IP Address</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs.items %}
+      <tr>
+        <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td><code>{{ log.action }}</code></td>
+        <td>{{ log.user.full_name if log.user else 'System' }}</td>
+        <td><small>{{ log.ip_address }}</small></td>
+        <td><small>{{ log.payload or '-' }}</small></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  {% if logs.pages > 1 %}
+  <div style="margin-top:16px;text-align:center;">
+    {% if logs.has_prev %}
+    <a href="?page={{ logs.prev_num }}" class="btn-pb-outline">← Previous</a>
+    {% endif %}
+    <span style="margin:0 8px;">Page {{ logs.page }} of {{ logs.pages }}</span>
+    {% if logs.has_next %}
+    <a href="?page={{ logs.next_num }}" class="btn-pb-outline">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Users — Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">User Management</div>
+    <div class="pb-page-sub">Manage system users and permissions</div>
+  </div>
+  <a href="/admin/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title">Active Users</div>
+    <a href="/admin/users/new" class="btn-pb-primary" style="margin-left:auto;">New user</a>
+  </div>
+  <table class="pb-table">
+    <thead>
+      <tr>
+        <th>Employee ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Branch</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td><strong>{{ user.employee_id }}</strong></td>
+        <td>{{ user.full_name }}</td>
+        <td>{{ user.email }}</td>
+        <td><span class="badge">{{ user.role.value|replace('_', ' ')|title }}</span></td>
+        <td>{{ user.branch.name if user.branch else '-' }}</td>
+        <td style="text-align:right;">
+          <a href="/admin/users/{{ user.id }}/edit" class="btn-pb-outline" style="padding:6px 10px;">Edit</a>
+          <form action="/admin/users/{{ user.id }}/deactivate" method="POST" style="display:inline;">
+            <button type="submit" class="btn-pb-danger" style="padding:6px 10px;margin-left:6px;">Deactivate</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
