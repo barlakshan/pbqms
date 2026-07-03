@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Service History — Officer Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Service History</div>
+    <div class="pb-page-sub">Completed tokens today for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/officer/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-history" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Recently completed</div>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Token</th><th>Customer</th><th>Service</th><th>Duration</th><th>Rating</th></tr></thead>
+      <tbody>
+        {% for t in completed %}
+        <tr>
+          <td><strong>{{ t.token_number }}</strong></td>
+          <td>{{ t.customer.full_name }}</td>
+          <td>{{ t.service_type.name }}</td>
+          <td>{{ t.service_duration_minutes or '—' }}m</td>
+          <td>{% if t.rating %}<span style="color:var(--pb-yellow);">★</span> {{ t.rating.rating }}{% else %}—{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-4" style="color:#aaa;">No completed services yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

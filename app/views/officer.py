@@ -87,3 +87,42 @@ def dashboard():
         stats=stats, recent_tokens=recent,
         hourly_labels=hourly_labels, hourly_data=hourly_data, peak_hour=peak_hour,
     )
+
+
+@officer_bp.route("/queue")
+@login_required
+@require_role(UserRole.LOBBY_OFFICER, UserRole.LOAN_OFFICER, UserRole.BRANCH_MANAGER)
+def queue():
+    service_ids = [s.id for s in ServiceType.query.filter(
+        ServiceType.code.in_(current_user.allowed_service_codes)).all()]
+    tokens = (QueueToken.query
+              .filter_by(branch_id=current_user.branch_id,
+                         status=TokenStatus.WAITING,
+                         queue_date=date.today())
+              .filter(QueueToken.service_type_id.in_(service_ids))
+              .order_by(QueueToken.is_priority.desc(), QueueToken.id.asc())
+              .all())
+
+    return render_template("officer/queue.html",
+        branch=current_user.branch,
+        tokens=tokens,
+        waiting_count=len(tokens),
+    )
+
+
+@officer_bp.route("/history")
+@login_required
+@require_role(UserRole.LOBBY_OFFICER, UserRole.LOAN_OFFICER, UserRole.BRANCH_MANAGER)
+def history():
+    completed = (QueueToken.query
+                 .filter_by(branch_id=current_user.branch_id,
+                            served_by=current_user.id,
+                            status=TokenStatus.COMPLETED,
+                            queue_date=date.today())
+                 .order_by(QueueToken.completed_at.desc())
+                 .limit(40).all())
+
+    return render_template("officer/history.html",
+        branch=current_user.branch,
+        completed=completed,
+    )

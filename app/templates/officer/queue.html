@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}My Queue — Officer Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">My Queue</div>
+    <div class="pb-page-sub">Waiting customers for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/officer/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-list-numbers" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Waiting queue</div>
+    <span class="pb-badge">{{ waiting_count }} waiting</span>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Token</th><th>Customer</th><th>Service</th><th>Priority</th><th>Issued</th></tr></thead>
+      <tbody>
+        {% for t in tokens %}
+        <tr>
+          <td><strong>{{ t.token_number }}</strong></td>
+          <td>{{ t.customer.full_name }}</td>
+          <td>{{ t.service_type.name }}</td>
+          <td>{% if t.is_priority %}<span class="pb-badge yellow">{{ t.priority_reason.value.title() }}</span>{% else %}—{% endif %}</td>
+          <td style="color:#888;font-size:12px;">{{ t.issued_at.strftime('%H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-4" style="color:#aaa;">No customers are waiting at the moment.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

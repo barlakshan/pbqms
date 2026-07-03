@@ -8,7 +8,7 @@
   <link href="{{ url_for('static', filename='css/pbqms.css') }}" rel="stylesheet">
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
-    html, body { height:100%; background:#0d0d0d; color:#fff; font-family:'Inter','Segoe UI',sans-serif; overflow:hidden; }
+    html, body { height:100%; background:#ffffff; color:#111; font-family:'Inter','Segoe UI',sans-serif; overflow:hidden; }
     .display-root { display:grid; grid-template-rows:auto 1fr auto; height:100vh; padding:20px 24px; gap:16px; }
 
     /* Header */
@@ -16,10 +16,10 @@
     .d-logo-row { display:flex; align-items:center; gap:14px; }
     .d-logo-mark { width:44px; height:44px; border-radius:10px; background:#c80000; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; color:#fff; }
     .d-logo-text { font-size:18px; font-weight:700; color:#c80000; letter-spacing:2px; }
-    .d-logo-sub  { font-size:11px; color:rgba(255,255,255,.4); margin-top:1px; }
+    .d-logo-sub  { font-size:11px; color:rgba(0,0,0,.4); margin-top:1px; }
     .d-header-right { display:flex; align-items:center; gap:16px; }
-    .d-time { font-size:24px; font-weight:500; color:rgba(255,255,255,.8); }
-    .d-date { font-size:12px; color:rgba(255,255,255,.35); text-align:right; }
+    .d-time { font-size:24px; font-weight:500; color:rgba(0,0,0,.85); }
+    .d-date { font-size:12px; color:rgba(0,0,0,.45); text-align:right; }
     .d-wait-badge { background:rgba(255,203,71,.12); border:0.5px solid rgba(255,203,71,.3); border-radius:8px; padding:6px 14px; }
     .d-wait-val { font-size:18px; font-weight:600; color:#FFCB47; line-height:1; }
     .d-wait-lbl { font-size:10px; color:rgba(255,203,71,.6); }
@@ -28,40 +28,40 @@
     .d-main { display:grid; grid-template-columns:1.4fr 1fr; gap:16px; min-height:0; }
 
     /* Now serving */
-    .d-serving-card { background:rgba(200,0,0,.1); border:0.5px solid rgba(200,0,0,.4); border-radius:16px; padding:28px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-    .d-serving-label { font-size:12px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+    .d-serving-card { background:rgba(200,0,0,.06); border:0.5px solid rgba(200,0,0,.12); border-radius:16px; padding:28px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    .d-serving-label { font-size:12px; color:rgba(0,0,0,.45); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
     .d-serving-token { font-size:96px; font-weight:700; color:#c80000; letter-spacing:10px; line-height:1; transition:opacity .3s, transform .3s; }
-    .d-serving-name  { font-size:20px; color:rgba(255,255,255,.75); margin-top:10px; }
-    .d-serving-counter { font-size:36px; font-weight:600; color:#fff; margin-top:6px; }
-    .d-serving-svc { font-size:13px; color:rgba(255,255,255,.4); margin-top:4px; }
+    .d-serving-name  { font-size:20px; color:rgba(0,0,0,.75); margin-top:10px; }
+    .d-serving-counter { font-size:36px; font-weight:600; color:#111; margin-top:6px; }
+    .d-serving-svc { font-size:13px; color:rgba(0,0,0,.45); margin-top:4px; }
     .d-priority-badge { display:inline-flex; align-items:center; gap:6px; background:#FFCB47; color:#6b5800; border-radius:6px; font-size:13px; font-weight:600; padding:5px 14px; margin-top:10px; }
-    .d-empty { font-size:16px; color:rgba(255,255,255,.3); }
+    .d-empty { font-size:16px; color:rgba(0,0,0,.35); }
 
     /* Right panel */
     .d-right { display:flex; flex-direction:column; gap:12px; min-height:0; }
-    .d-recent-panel { background:#111; border-radius:12px; padding:14px; flex:1; overflow:hidden; }
-    .d-panel-title { font-size:10px; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; }
-    .d-recent-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:0.5px solid rgba(255,255,255,.06); }
+    .d-recent-panel { background:rgba(255,255,255,1); border-radius:12px; padding:14px; flex:1; overflow:hidden; box-shadow:0 1px 0 rgba(0,0,0,.04); }
+    .d-panel-title { font-size:10px; color:rgba(0,0,0,.45); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; }
+    .d-recent-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:0.5px solid rgba(0,0,0,.06); }
     .d-recent-row:last-child { border:none; }
-    .d-recent-num { font-size:16px; font-weight:600; color:rgba(255,255,255,.85); min-width:52px; }
-    .d-recent-name{ font-size:12px; color:rgba(255,255,255,.45); flex:1; padding:0 10px; }
-    .d-recent-ctr { font-size:12px; color:rgba(255,255,255,.35); }
+    .d-recent-num { font-size:16px; font-weight:600; color:rgba(0,0,0,.85); min-width:52px; }
+    .d-recent-name{ font-size:12px; color:rgba(0,0,0,.55); flex:1; padding:0 10px; }
+    .d-recent-ctr { font-size:12px; color:rgba(0,0,0,.45); }
 
     .d-next-row-wrap { display:flex; gap:8px; }
     .d-next-badge { flex:1; border-radius:10px; padding:10px; text-align:center; }
-    .d-next-red    { background:rgba(200,0,0,.12); border:0.5px solid rgba(200,0,0,.3); }
-    .d-next-green  { background:rgba(153,198,48,.08); border:0.5px solid rgba(153,198,48,.25); }
-    .d-next-yellow { background:rgba(255,203,71,.08); border:0.5px solid rgba(255,203,71,.25); }
-    .d-next-dark   { background:rgba(76,78,84,.15); border:0.5px solid rgba(76,78,84,.3); }
+    .d-next-red    { background:rgba(200,0,0,.06); border:0.5px solid rgba(200,0,0,.12); }
+    .d-next-green  { background:rgba(153,198,48,.04); border:0.5px solid rgba(153,198,48,.12); }
+    .d-next-yellow { background:rgba(255,203,71,.04); border:0.5px solid rgba(255,203,71,.12); }
+    .d-next-dark   { background:rgba(76,78,84,.06); border:0.5px solid rgba(76,78,84,.06); }
     .d-next-num    { font-size:22px; font-weight:700; line-height:1; }
-    .d-next-lbl    { font-size:9px; margin-top:3px; opacity:.5; }
+    .d-next-lbl    { font-size:9px; margin-top:3px; color:rgba(0,0,0,.45); }
     .nb-red    { color:#c80000; }
     .nb-green  { color:#99c630; }
     .nb-yellow { color:#FFCB47; }
-    .nb-dark   { color:rgba(255,255,255,.55); }
+    .nb-dark   { color:rgba(0,0,0,.55); }
 
     /* Ticker */
-    .d-ticker { background:#0a0a0a; border-radius:8px; padding:10px 16px; overflow:hidden; }
+    .d-ticker { background:rgba(255,255,255,1); border-radius:8px; padding:10px 16px; overflow:hidden; box-shadow:0 1px 0 rgba(0,0,0,.04); }
     .d-ticker-inner { white-space:nowrap; display:inline-block; animation:pb-scroll 18s linear infinite; font-size:14px; color:#c80000; letter-spacing:.3px; }
     @keyframes pb-scroll { 0%{transform:translateX(100vw)} 100%{transform:translateX(-100%)} }
 
@@ -119,8 +119,8 @@
         <div class="d-panel-title">Recently called</div>
         <div id="d-recent-list">
           <div class="d-recent-row">
-            <div class="d-recent-num" style="color:rgba(255,255,255,.2);">—</div>
-            <div class="d-recent-name" style="color:rgba(255,255,255,.15);">Waiting…</div>
+            <div class="d-recent-num" style="color:rgba(0,0,0,.3);">—</div>
+            <div class="d-recent-name" style="color:rgba(0,0,0,.25);">Waiting…</div>
           </div>
         </div>
       </div>

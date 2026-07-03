@@ -2,11 +2,11 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.views import manager_view_bp, admin_view_bp
 from app.models import (QueueToken, TokenStatus, User, UserRole, Counter,
-                         ServiceType, SatisfactionRating, Branch)
+                         ServiceType, SatisfactionRating, Branch, Customer)
 from app.utils.decorators import require_role
 from app.extensions import db
 from sqlalchemy import func
-from datetime import date
+from datetime import date, timedelta
 
 
 @manager_view_bp.route("/dashboard")
@@ -142,10 +142,104 @@ def officers():
     )
 
 
+@manager_view_bp.route("/analytics")
+@login_required
+@require_role(UserRole.BRANCH_MANAGER, UserRole.ADMIN)
+def analytics():
+    import traceback
+    try:
+        today     = date.today()
+        branch_id = current_user.branch_id
+
+        total       = QueueToken.query.filter_by(branch_id=branch_id, queue_date=today).count()
+        completed   = QueueToken.query.filter_by(branch_id=branch_id, queue_date=today,
+                                                status=TokenStatus.COMPLETED).count()
+        waiting     = QueueToken.query.filter_by(branch_id=branch_id, queue_date=today,
+                                                status=TokenStatus.WAITING).count()
+        avg_rating  = db.session.query(func.avg(SatisfactionRating.rating)).join(QueueToken).filter(
+            QueueToken.branch_id == branch_id, QueueToken.queue_date == today).scalar()
+
+        service_rows = (db.session.query(ServiceType.name, ServiceType.code,
+                                        func.count(QueueToken.id))
+                        .join(QueueToken, QueueToken.service_type_id == ServiceType.id)
+                        .filter(QueueToken.branch_id == branch_id, QueueToken.queue_date == today)
+                        .group_by(ServiceType.id).all())
+
+        daily_counts = []
+        for days_ago in range(6, -1, -1):
+            day = today - timedelta(days=days_ago)
+            daily_counts.append({
+                "label": day.strftime("%a"),
+                "count": QueueToken.query.filter_by(branch_id=branch_id, queue_date=day).count(),
+            })
+
+        return render_template("manager/analytics.html",
+            branch=current_user.branch,
+            stats={
+                "total": total,
+                "completed": completed,
+                "waiting": waiting,
+                "avg_rating": round(float(avg_rating or 0), 1),
+                "completion_pct": round(completed / total * 100) if total else 0,
+            },
+            service_stats=[{"name": n, "code": c, "count": cnt} for n, c, cnt in service_rows],
+            other_pending=QueueToken.query.filter_by(branch_id=branch_id, queue_date=today,
+                                                     status=TokenStatus.WAITING).join(ServiceType).filter(ServiceType.code == "OT").count(),
+            daily_counts=daily_counts,
+        )
+    except Exception as e:
+        import sys
+        print(f"ERROR in analytics: {e}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
+        raise
+
+
+@manager_view_bp.route("/customers")
+@login_required
+@require_role(UserRole.BRANCH_MANAGER, UserRole.ADMIN)
+def customers():
+    branch_id = current_user.branch_id
+    page = request.args.get("page", 1, type=int)
+
+    rows = (db.session.query(Customer, func.count(QueueToken.id).label("visits"))
+            .join(QueueToken, QueueToken.customer_id == Customer.id)
+            .filter(QueueToken.branch_id == branch_id)
+            .group_by(Customer.id)
+            .order_by(func.count(QueueToken.id).desc())
+            .paginate(page=page, per_page=25, error_out=False))
+
+    return render_template("manager/customers.html",
+        branch=current_user.branch,
+        customers=rows.items,
+        total=rows.total,
+        page=page,
+        pages=rows.pages,
+    )
+
+
+@manager_view_bp.route("/queue/other")
+@login_required
+@require_role(UserRole.BRANCH_MANAGER, UserRole.ADMIN)
+def other_queue():
+    today     = date.today()
+    branch_id = current_user.branch_id
+
+    other_tokens = (QueueToken.query
+                    .filter_by(branch_id=branch_id, queue_date=today, status=TokenStatus.WAITING)
+                    .join(ServiceType).filter(ServiceType.code == "OT")
+                    .order_by(QueueToken.issued_at.asc()).all())
+
+    return render_template("manager/other_queue.html",
+        branch=current_user.branch,
+        other_tokens=other_tokens,
+        manager_counter_id=None,
+    )
+
+
 @manager_view_bp.route("/qr")
 @manager_view_bp.route("/qr/")
 @login_required
-@require_role(UserRole.BRANCH_MANAGER, UserRole.ADMIN)
+@require_role(UserRole.BRANCH_MANAGER, UserRole.ADMIN, UserRole.LOBBY_OFFICER, UserRole.LOAN_OFFICER)
 def branch_qr():
     branch = current_user.branch
     if not branch and current_user.role == UserRole.ADMIN:

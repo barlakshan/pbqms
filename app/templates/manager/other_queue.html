@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Other Queue — Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Other Queue</div>
+    <div class="pb-page-sub">Customers requiring manager attention for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/manager/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-circle-dots" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Pending requests</div>
+    <span class="pb-badge red">{{ other_tokens | length }} pending</span>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Token</th><th>Customer</th><th>Mobile</th><th>Reason</th><th>Issued</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for t in other_tokens %}
+        <tr>
+          <td><strong>{{ t.token_number }}</strong></td>
+          <td>{{ t.customer.full_name }}</td>
+          <td style="color:#888;font-size:12px;">{{ t.customer.mobile }}</td>
+          <td style="max-width:180px;font-size:12px;">{{ t.custom_reason or '—' }}</td>
+          <td style="color:#888;font-size:12px;">{{ t.issued_at.strftime('%H:%M') }}</td>
+          <td>
+            <button class="btn-pb-primary" style="font-size:11px;padding:4px 10px;" onclick="callOther({{ t.id }})">
+              <i class="ti ti-phone-call"></i> Call
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center py-4" style="color:#aaa;">No "Other" requests pending</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function callOther(tokenId) {
+    if (!confirm('Call this "Other" customer to your counter?')) return;
+    fetch('/api/queue/call-next', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token_id: tokenId, counter_id: {{ manager_counter_id or 'null' }} })
+    })
+    .then(r => {
+      if (r.ok) return r.json();
+      throw new Error('Unable to call customer');
+    })
+    .then(() => location.reload())
+    .catch(() => alert('Error calling customer'));
+  }
+</script>
+{% endblock %}

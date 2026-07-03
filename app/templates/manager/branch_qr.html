@@ -16,10 +16,17 @@
   </div>
   <div class="pb-card-body">
     {% if qr_image_url %}
-    <img src="{{ qr_image_url }}" alt="QR code for {{ branch.name }}" style="max-width:280px;width:100%;height:auto;border:1px solid #e5e7eb;padding:12px;border-radius:12px;background:#fff;">
+    <img id="branch-qr" src="{{ qr_image_url }}" alt="QR code for {{ branch.name }}" style="max-width:280px;width:100%;height:auto;border:1px solid #e5e7eb;padding:12px;border-radius:12px;background:#fff;">
+    <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+      <a href="{{ qr_image_url }}" download="PBQMS-{{ branch.code }}-QR.png" class="btn-pb-outline">
+        <i class="ti ti-download"></i> Download QR
+      </a>
+      <button class="btn-pb-primary" type="button" onclick="window.open('{{ url_for('display.screen', branch_code=branch.code) }}','_blank')">
+        <i class="ti ti-tv"></i> Open live display
+      </button>
+    </div>
     {% endif %}
     <p style="margin-top:14px;color:#666;">Scan this code to open the customer registration page for {{ branch.name }}.</p>
-    <a href="{{ url_for('display.screen', branch_code=branch.code) }}" target="_blank" class="btn-pb-primary" style="margin-top:8px;">Open live display</a>
   </div>
 </div>
 {% endblock %}

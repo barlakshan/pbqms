@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Branch Customers — Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Branch Customers</div>
+    <div class="pb-page-sub">Frequent and recent customers for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/manager/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-card">
+  <div class="pb-card-header">
+    <div class="pb-card-title"><i class="ti ti-address-book" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Customer list</div>
+    <span class="pb-badge">{{ total }} total</span>
+  </div>
+  <div class="pb-card-body" style="padding:0;">
+    <table class="pb-table">
+      <thead><tr><th>Name</th><th>Mobile</th><th>Visits</th></tr></thead>
+      <tbody>
+        {% for customer in customers %}
+        <tr>
+          <td>{{ customer.full_name }}</td>
+          <td style="color:#888;font-size:12px;">{{ customer.mobile }}</td>
+          <td><strong>{{ customer.visits }}</strong></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center py-4" style="color:#aaa;">No customers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pages and pages > 1 %}
+<div class="pb-card" style="margin-top:16px;">
+  <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+    {% for p in range(1, pages + 1) %}
+      <a href="?page={{ p }}" class="btn-pb-outline" style="padding:6px 12px; {{ 'background:#f5f5f5;' if p == page else '' }}">{{ p }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

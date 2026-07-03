@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Manager Analytics — People's Bank{% endblock %}
+
+{% block content %}
+<div class="pb-page-header">
+  <div>
+    <div class="pb-page-title">Branch Analytics</div>
+    <div class="pb-page-sub">Performance for {{ branch.name if branch else 'your branch' }}</div>
+  </div>
+  <a href="/manager/dashboard" class="btn-pb-outline"><i class="ti ti-arrow-left"></i> Back</a>
+</div>
+
+<div class="pb-stat-grid">
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon red"><i class="ti ti-ticket"></i></div>
+    <div class="pb-stat-value">{{ stats.total }}</div>
+    <div class="pb-stat-label">Tokens today</div>
+    <div class="pb-stat-delta up">{{ stats.completion_pct }}% completion</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon green"><i class="ti ti-circle-check"></i></div>
+    <div class="pb-stat-value">{{ stats.completed }}</div>
+    <div class="pb-stat-label">Completed</div>
+    <div class="pb-stat-delta up">{{ stats.waiting }} waiting</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon yellow"><i class="ti ti-chart-bar"></i></div>
+    <div class="pb-stat-value">{{ stats.avg_rating }}★</div>
+    <div class="pb-stat-label">Avg rating</div>
+    <div class="pb-stat-delta up">Includes customer feedback</div>
+  </div>
+  <div class="pb-stat-card">
+    <div class="pb-stat-icon dark"><i class="ti ti-circle-dots"></i></div>
+    <div class="pb-stat-value">{{ other_pending }}</div>
+    <div class="pb-stat-label">Other queue</div>
+    <div class="pb-stat-delta up">Needs manager action</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-list-numbers" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Service breakdown</div>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="service-chart" height="220"></canvas>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+        {% for svc in service_stats %}
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#444;">
+          <span style="width:10px;height:10px;border-radius:2px;background:#c80000;"></span>
+          {{ svc.name }}: {{ svc.count }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="pb-card">
+    <div class="pb-card-header">
+      <div class="pb-card-title"><i class="ti ti-chart-line" style="font-size:15px;margin-right:6px;color:var(--pb-red)"></i>Last 7 days</div>
+    </div>
+    <div class="pb-card-body">
+      <canvas id="weekly-chart" height="220"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const serviceData = {
+    labels: {{ service_stats | map(attribute='name') | list | tojson }},
+    datasets: [{
+      data: {{ service_stats | map(attribute='count') | list | tojson }},
+      backgroundColor: ['#c80000','#99c630','#FFCB47','#4c4e54','#d1d2d5'],
+      borderWidth: 0,
+      hoverOffset: 4,
+    }]
+  };
+
+  new Chart(document.getElementById('service-chart'), {
+    type: 'doughnut',
+    data: serviceData,
+    options: { responsive: true, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('weekly-chart'), {
+    type: 'bar',
+    data: {
+      labels: {{ daily_counts | map(attribute='label') | list | tojson }},
+      datasets: [{
+        label: 'Tokens per day',
+        data: {{ daily_counts | map(attribute='count') | list | tojson }},
+        backgroundColor: '#c80000',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } }
+    }
+  });
+</script>
+{% endblock %}
