@@ -29,17 +29,17 @@ The current codebase provides a mostly complete MVP with the following fully imp
 - Officer dashboard with current queue counts and recent completed tokens
 - Live screen route and Socket.IO event handlers for branch room updates
 - SMS task abstraction with Celery async fallback via thread
+- Daily queue cleanup task in `app/tasks/cleanup_tasks.py` to mark stale waiting tokens
 - CLI commands: `seed-db`, `create-admin`, `reset-queue`, `generate-qr`
 - Default branch QR generation into `static/qrcodes`
 - Test coverage for manager flow and seed data
 
 ### Incomplete / optional
 
-- `app/tasks/cleanup_tasks.py` is present but not implemented
 - Some view-level stats still use static placeholder values
-- No production `.env`; developers must populate `.env.example`
+- No production `.env` file included; copy `.env.example` to `.env` before running
 - Swagger/OpenAPI docs not included
-- Monitoring, logging and DNS/HTTPS configuration are not part of this repo
+- Monitoring, logging, and DNS/HTTPS configuration are not part of this repo
 
 ## Architecture
 

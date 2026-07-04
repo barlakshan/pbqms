@@ -37,6 +37,11 @@ def create_app(config_name=None):
     )
     app.config.from_object(config_by_name[config_name])
 
+    if app.config.get("ENV") == "production":
+        secret_key = app.config.get("SECRET_KEY")
+        if not secret_key or len(secret_key) < 24 or "change" in secret_key.lower() or "dev" in secret_key.lower():
+            raise RuntimeError("SECRET_KEY must be set to a strong random value in production")
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)

@@ -26,14 +26,17 @@ class QueueService:
     @staticmethod
     def get_position(token: QueueToken) -> int:
         """How many people are ahead in the same service queue."""
-        return (QueueToken.query
-                .filter_by(branch_id=token.branch_id,
+        query = (QueueToken.query
+                 .filter_by(branch_id=token.branch_id,
                             service_type_id=token.service_type_id,
                             queue_date=token.queue_date,
                             status=TokenStatus.WAITING)
-                .filter(QueueToken.is_priority >= token.is_priority,
-                        QueueToken.id < token.id)
-                .count())
+                 .filter(QueueToken.id < token.id))
+
+        if not token.is_priority:
+            query = query.filter(QueueToken.is_priority.is_(False))
+
+        return query.count()
 
     @staticmethod
     def get_now_serving(branch_id: int) -> list:

@@ -13,7 +13,7 @@ DEFAULT_SQLITE_URI = "sqlite:///" + os.path.join(_BASE_DIR, "pbqms_dev.sqlite3")
 
 
 class BaseConfig:
-    SECRET_KEY                     = os.environ.get("SECRET_KEY", "pb-qems-dev-secret-change-me")
+    SECRET_KEY                     = os.environ.get("SECRET_KEY")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO                = False
     REDIS_URL                      = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -40,6 +40,7 @@ class DevelopmentConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     DEBUG                      = False
+    ENV                        = "production"
     # In production DATABASE_URL should always be set explicitly; this only
     # prevents a hard crash on import if it's missing.
     SQLALCHEMY_DATABASE_URI    = os.environ.get("DATABASE_URL", DEFAULT_SQLITE_URI)
@@ -47,6 +48,8 @@ class ProductionConfig(BaseConfig):
     SESSION_COOKIE_HTTPONLY    = True
     REMEMBER_COOKIE_SECURE     = True
     REMEMBER_COOKIE_HTTPONLY   = True
+    SESSION_COOKIE_SAMESITE    = "Lax"
+    PERMANENT_SESSION_LIFETIME = 3600
 
 
 class TestingConfig(BaseConfig):
