@@ -1,5 +1,5 @@
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 class SmsType(enum.Enum):
@@ -21,5 +21,5 @@ class SmsLog(db.Model):
     status              = db.Column(db.Enum(SmsStatus), default=SmsStatus.PENDING)
     provider_message_id = db.Column(db.String(80))
     sent_at             = db.Column(db.DateTime)
-    created_at          = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at          = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     token = db.relationship("QueueToken", back_populates="sms_logs")

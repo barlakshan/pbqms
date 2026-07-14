@@ -1,5 +1,5 @@
 from app.extensions import db
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import enum
 
 class TokenStatus(enum.Enum):
@@ -30,7 +30,7 @@ class QueueToken(db.Model):
     is_priority        = db.Column(db.Boolean, default=False)
     priority_reason    = db.Column(db.Enum(PriorityReason), default=PriorityReason.NONE)
     estimated_wait_min = db.Column(db.Integer, default=0)
-    issued_at          = db.Column(db.DateTime, default=datetime.utcnow)
+    issued_at          = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     called_at          = db.Column(db.DateTime, nullable=True)
     served_at          = db.Column(db.DateTime, nullable=True)
     completed_at       = db.Column(db.DateTime, nullable=True)

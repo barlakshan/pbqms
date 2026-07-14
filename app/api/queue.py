@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.api import queue_bp
 from app.services.queue_service import QueueService
 from app.models import (PriorityReason, SatisfactionRating, QueueToken,
-                          TokenStatus, UserRole, ServiceType, Branch)
+                          TokenStatus, UserRole, ServiceType, Branch, Counter)
 from app.extensions import db
 from app.utils.decorators import require_role, audit_action
 from datetime import date
@@ -32,6 +32,22 @@ def register():
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
+    # Validate inputs
+    try:
+        branch_id = int(data["branch_id"])
+        service_type_id = int(data["service_type_id"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "branch_id and service_type_id must be integers"}), 400
+    
+    full_name = str(data["full_name"]).strip()
+    mobile = str(data["mobile"]).strip()
+    
+    if not full_name or len(full_name) < 2:
+        return jsonify({"error": "Full name is required (min 2 characters)"}), 400
+    
+    if not mobile or len(mobile) < 9:
+        return jsonify({"error": "Valid mobile number is required"}), 400
+
     try:
         priority_reason = PriorityReason[data.get("priority_reason", "NONE").upper()]
     except KeyError:
@@ -40,16 +56,18 @@ def register():
 
     try:
         token = QueueService.register_customer(
-            branch_id=int(data["branch_id"]),
-            full_name=str(data["full_name"]).strip(),
-            mobile=str(data["mobile"]).strip(),
-            service_type_id=int(data["service_type_id"]),
+            branch_id=branch_id,
+            full_name=full_name,
+            mobile=mobile,
+            service_type_id=service_type_id,
             custom_reason=data.get("custom_reason"),
             is_priority=is_priority,
             priority_reason=priority_reason,
         )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Registration failed: {str(e)}"}), 500
 
     position = QueueService.get_position(token)
     return jsonify({
@@ -92,18 +110,32 @@ def token_status(token_id):
 def call_next():
     data       = request.get_json(force=True) or {}
     counter_id = data.get("counter_id")
-    token = QueueService.call_next(current_user, counter_id)
-    if not token:
-        return jsonify({"message": "No customers waiting"}), 204
-    return jsonify({
-        "token_id":        token.id,
-        "token_number":    token.token_number,
-        "customer_name":   token.customer.full_name,
-        "service":         token.service_type.name,
-        "is_priority":     token.is_priority,
-        "priority_reason": token.priority_reason.value,
-        "counter":         token.counter.label if token.counter else None,
-    })
+    
+    # Validate counter_id if provided
+    if counter_id:
+        try:
+            counter_id = int(counter_id)
+            counter = Counter.query.get(counter_id)
+            if not counter or counter.branch_id != current_user.branch_id:
+                return jsonify({"error": "Invalid counter"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "counter_id must be an integer"}), 400
+    
+    try:
+        token = QueueService.call_next(current_user, counter_id)
+        if not token:
+            return jsonify({"message": "No customers waiting"}), 204
+        return jsonify({
+            "token_id":        token.id,
+            "token_number":    token.token_number,
+            "customer_name":   token.customer.full_name,
+            "service":         token.service_type.name,
+            "is_priority":     token.is_priority,
+            "priority_reason": token.priority_reason.value,
+            "counter":         token.counter.label if token.counter else None,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @queue_bp.post("/token/<int:token_id>/start")
@@ -140,24 +172,45 @@ def mark_no_show(token_id):
 def upgrade_priority(token_id):
     data   = request.get_json(force=True) or {}
     reason = data.get("priority_reason", "ELDERLY").upper()
-    token  = QueueService.upgrade_priority(token_id, reason)
-    return jsonify({"message": "Priority set", "token": token.token_number})
+    
+    # Validate priority reason
+    try:
+        priority_reason = PriorityReason[reason]
+    except KeyError:
+        return jsonify({"error": f"Invalid priority reason: {reason}. Must be one of: {', '.join([p.name for p in PriorityReason])}"}), 400
+    
+    try:
+        token = QueueService.upgrade_priority(token_id, reason)
+        return jsonify({"message": "Priority set", "token": token.token_number})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @queue_bp.post("/token/<int:token_id>/rate")
 def rate_service(token_id):
     data       = request.get_json(force=True) or {}
-    rating_val = int(data.get("rating", 0))
+    
+    try:
+        rating_val = int(data.get("rating", 0))
+    except (ValueError, TypeError):
+        return jsonify({"error": "rating must be an integer"}), 400
+    
     if not (1 <= rating_val <= 5):
         return jsonify({"error": "Rating must be between 1 and 5"}), 400
+    
     token = QueueToken.query.get_or_404(token_id)
     if token.rating:
-        return jsonify({"error": "Already rated"}), 409
-    r = SatisfactionRating(token_id=token_id, rating=rating_val,
-                            comment=data.get("comment", ""))
-    db.session.add(r)
-    db.session.commit()
-    return jsonify({"message": "Rating submitted. Thank you!"})
+        return jsonify({"error": "Token already rated"}), 409
+    
+    try:
+        r = SatisfactionRating(token_id=token_id, rating=rating_val,
+                                comment=data.get("comment", ""))
+        db.session.add(r)
+        db.session.commit()
+        return jsonify({"message": "Rating submitted. Thank you!"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to submit rating: {str(e)}"}), 500
 
 
 @queue_bp.get("/waiting")

@@ -1,5 +1,5 @@
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Branch(db.Model):
@@ -12,7 +12,7 @@ class Branch(db.Model):
     city       = db.Column(db.String(80))
     phone      = db.Column(db.String(20))
     is_active  = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     users    = db.relationship("User",       back_populates="branch",   lazy="dynamic")
     counters = db.relationship("Counter",    back_populates="branch",   lazy="dynamic")

@@ -4,6 +4,32 @@ from dotenv import load_dotenv
 # Load .env every time config is imported (safe to call multiple times)
 load_dotenv()
 
+
+def _normalize_sms_provider(value):
+    if not value:
+        return "mock"
+
+    provider = str(value).strip().lower()
+
+    if provider.startswith(("http://", "https://")):
+        if "text.lk" in provider or "textlk" in provider:
+            return "textlk"
+        if "dialog" in provider:
+            return "dialog"
+        if "mobitel" in provider:
+            return "mobitel"
+        if "twilio" in provider:
+            return "twilio"
+        return "mock"
+
+    if provider in {"textlk", "text.lk", "text-lk", "text_lk", "text"}:
+        return "textlk"
+    if provider in {"mock", "none", "off", "disabled"}:
+        return "mock"
+
+    return provider
+
+
 # Zero-config local database: a SQLite file next to the project root.
 # Used whenever DATABASE_URL isn't set, so the app runs immediately without
 # requiring a MySQL server to be installed/running. Set DATABASE_URL (e.g. to
@@ -18,12 +44,14 @@ class BaseConfig:
     SQLALCHEMY_ECHO                = False
     REDIS_URL                      = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     CELERY_BROKER_URL              = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
-    SMS_PROVIDER                   = os.environ.get("SMS_PROVIDER", "mock")
+    SMS_PROVIDER                   = _normalize_sms_provider(os.environ.get("SMS_PROVIDER", "mock"))
     DIALOG_USER                    = os.environ.get("DIALOG_USER", "")
     DIALOG_PASS                    = os.environ.get("DIALOG_PASS", "")
     DIALOG_SENDER_ID               = os.environ.get("DIALOG_SENDER_ID", "PPLSBANK")
     MOBITEL_TOKEN                  = os.environ.get("MOBITEL_TOKEN", "")
     MOBITEL_SENDER_ID              = os.environ.get("MOBITEL_SENDER_ID", "PPLSBANK")
+    TEXTLK_API_TOKEN               = os.environ.get("TEXTLK_API_TOKEN", "")
+    TEXTLK_SENDER_ID               = os.environ.get("TEXTLK_SENDER_ID", "PPLSBANK")
     TWILIO_SID                     = os.environ.get("TWILIO_SID", "")
     TWILIO_TOKEN                   = os.environ.get("TWILIO_TOKEN", "")
     TWILIO_FROM                    = os.environ.get("TWILIO_FROM", "")

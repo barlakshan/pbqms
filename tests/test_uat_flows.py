@@ -30,6 +30,18 @@ def client():
         db.drop_all()
 
 
+def test_public_display_route_renders_live_screen(client):
+    with client.application.app_context():
+        branch = Branch(code="COL", name="Colombo", is_active=True)
+        db.session.add(branch)
+        db.session.commit()
+
+    response = client.get("/display")
+    assert response.status_code == 200
+    assert b"Queue Display" in response.data
+    assert b"Colombo" in response.data
+
+
 def test_customer_registration_and_queue_lifecycle(client):
     with client.application.app_context():
         branch = Branch(code="COL", name="Colombo", is_active=True)

@@ -146,33 +146,41 @@
     </div>
   </div>
 
+  <!-- Ticker 2 -->
+  <div class="d-ticker">
+    <div class="d-ticker-inner" id="d-ticker">
+      මහජන බැංකුවට සාදරයෙන් පිළිගනිමු &nbsp;·&nbsp; කරුණාකර අසුන් ගෙන ඔබගේ ටෝකන් අංකයට ඇමතුමක් ලැබෙන තෙක් රැඳී සිටින්න &nbsp;·&nbsp;
+      වැඩිහිටි, ගර්භනී සහ ආබාධිත ගනුදෙනුකරුවන් සඳහා ප්‍රමුඛතා සේවාව ලබා ගත හැකිය &nbsp;·&nbsp;
+      ශ්‍රී ලංකා මහජන බැංකුව සමඟ බැංකු කටයුතු කිරීම ගැන ඔබට ස්තූතියි.
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client-dist/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='js/queue-display.js') }}"></script>
 <script>
-  // Date display
   function updateDate() {
     document.getElementById('d-date').textContent = new Date().toLocaleDateString('en-LK', {
       weekday:'long', day:'numeric', month:'long', year:'numeric'
     });
   }
-  updateDate();
 
-  // Enhance QueueDisplay with DOM updates
-  const _origHandle = QueueDisplay;
+  function applyQueueData(data) {
+    const waitingEl = document.getElementById('waiting-count');
+    if (waitingEl) waitingEl.textContent = data.waiting_count || 0;
 
-  const socket = io({ transports: ['websocket', 'polling'] });
-  socket.on('connect', () => socket.emit('join_branch_display', { branch_code: '{{ branch.code }}' }));
-
-  socket.on('queue_update', data => {
-    document.getElementById('waiting-count').textContent = data.waiting_count || 0;
-
-    if (!data.serving || !data.serving.length) return;
+    if (!data.serving || !data.serving.length) {
+      document.getElementById('d-token').textContent = '—';
+      document.getElementById('d-name').textContent = 'Waiting for first customer';
+      document.getElementById('d-counter').textContent = '';
+      document.getElementById('d-svc').textContent = '';
+      document.getElementById('d-priority').style.display = 'none';
+      document.getElementById('d-recent-list').innerHTML = '<div class="d-recent-row"><div class="d-recent-num" style="color:rgba(0,0,0,.3);">—</div><div class="d-recent-name" style="color:rgba(0,0,0,.25);">Waiting…</div></div>';
+      return;
+    }
 
     const primary = data.serving[0];
-
-    // Animate token number
     const tokenEl = document.getElementById('d-token');
     tokenEl.style.opacity = '0';
     tokenEl.style.transform = 'scale(.8)';
@@ -183,36 +191,19 @@
       tokenEl.style.transform = 'scale(1)';
     }, 250);
 
-    document.getElementById('d-name').textContent    = primary.customer_name;
+    document.getElementById('d-name').textContent    = primary.customer_name || 'Waiting';
     document.getElementById('d-counter').textContent = primary.counter || '';
     document.getElementById('d-svc').textContent     = primary.service || '';
 
     const priBadge = document.getElementById('d-priority');
-    if (primary.is_priority && primary.priority_reason !== 'none') {
+    const priText = document.getElementById('d-priority-text');
+    if (primary.is_priority && primary.priority_reason && primary.priority_reason !== 'none') {
       priBadge.style.display = 'inline-flex';
-      document.getElementById('d-priority-text').textContent =
-        'Priority — ' + primary.priority_reason.charAt(0).toUpperCase() + primary.priority_reason.slice(1);
-
-      // Voice announcement
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const txt = `Priority customer. Token ${primary.token.split('').join(' ')}. ${primary.customer_name}. Please proceed to ${primary.counter}.`;
-        const utter = new SpeechSynthesisUtterance(txt);
-        utter.lang = 'en-US'; utter.rate = 0.85;
-        window.speechSynthesis.speak(utter);
-      }
+      priText.textContent = 'Priority — ' + primary.priority_reason.charAt(0).toUpperCase() + primary.priority_reason.slice(1);
     } else {
       priBadge.style.display = 'none';
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const txt = `Token ${primary.token.split('').join(' ')}. ${primary.customer_name}. Please proceed to ${primary.counter}.`;
-        const utter = new SpeechSynthesisUtterance(txt);
-        utter.lang = 'en-US'; utter.rate = 0.85;
-        window.speechSynthesis.speak(utter);
-      }
     }
 
-    // Recent list
     const recentEl = document.getElementById('d-recent-list');
     recentEl.innerHTML = data.serving.map(t => `
       <div class="d-recent-row">
@@ -222,40 +213,42 @@
       </div>
     `).join('');
 
-    // Next tokens
-    if (data.next && data.next.length) {
-      const byService = {};
-      data.next.forEach(t => { if (!byService[t.service_code]) byService[t.service_code] = t.token; });
-      if (byService['AO']) document.getElementById('next-ao').textContent = byService['AO'];
-      if (byService['FD']) document.getElementById('next-fd').textContent = byService['FD'];
-      if (byService['LN']) document.getElementById('next-ln').textContent = byService['LN'];
-      if (byService['OT']) document.getElementById('next-ot').textContent = byService['OT'];
-    }
+    const nextMap = {};
+    (data.next || []).forEach(t => {
+      if (!nextMap[t.service_code]) nextMap[t.service_code] = t.token;
+    });
+    if (nextMap['AO']) document.getElementById('next-ao').textContent = nextMap['AO'];
+    if (nextMap['FD']) document.getElementById('next-fd').textContent = nextMap['FD'];
+    if (nextMap['LN']) document.getElementById('next-ln').textContent = nextMap['LN'];
+    if (nextMap['OT']) document.getElementById('next-ot').textContent = nextMap['OT'];
 
-    // Ticker
     if (primary.is_priority) {
       document.getElementById('d-ticker').textContent =
         `Token ${primary.token} — PRIORITY — ${primary.customer_name} — Please proceed to ${primary.counter} · ` +
         `Wheelchair access and priority seating available · Thank you for banking with People's Bank`;
     }
-  });
+  }
 
+  updateDate();
+
+  const socket = io({ transports: ['websocket', 'polling'] });
+  socket.on('connect', () => socket.emit('join_branch_display', { branch_code: '{{ branch.code }}' }));
+  socket.on('queue_update', applyQueueData);
   socket.on('disconnect', () => setTimeout(() => location.reload(), 5000));
 
-  // Clock
   setInterval(() => {
     document.getElementById('d-clock').textContent =
       new Date().toLocaleTimeString('en-LK', { hour:'2-digit', minute:'2-digit' });
   }, 1000);
 
-  // Periodic poll fallback
   async function pollFallback() {
     try {
       const r = await fetch('/api/queue/display/{{ branch.code }}');
       const data = await r.json();
-      socket.emit('queue_update', data); // Reuse same handler
+      applyQueueData(data);
     } catch {}
   }
+
   setInterval(pollFallback, 25000);
   pollFallback();
 </script>

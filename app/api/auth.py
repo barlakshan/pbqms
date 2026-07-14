@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from app.api import auth_bp
 from app.models import User
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @auth_bp.route("/login-page", methods=["GET"])
@@ -32,7 +32,7 @@ def login():
         return redirect(url_for("auth_api.login_page"))
 
     login_user(user, remember=True)
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.session.commit()
 
     if request.is_json:

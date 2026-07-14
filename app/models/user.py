@@ -1,7 +1,7 @@
 from app.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 class UserRole(enum.Enum):
@@ -21,7 +21,7 @@ class User(UserMixin, db.Model):
     role          = db.Column(db.Enum(UserRole), nullable=False)
     is_active     = db.Column(db.Boolean, default=True)
     last_login    = db.Column(db.DateTime)
-    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at    = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     branch        = db.relationship("Branch", back_populates="users")
     tokens_served = db.relationship("QueueToken", back_populates="served_by_officer",
                                     foreign_keys="QueueToken.served_by", lazy="dynamic")
